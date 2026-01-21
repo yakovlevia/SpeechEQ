@@ -9,16 +9,9 @@ from core.main_window import MainWindow
 
 def main():
     """Основная функция приложения"""
-    # Создание приложения
     app = QApplication(sys.argv)
-    
-    # Создание главного окна
     window = MainWindow()
-    
-    # Показать окно
     window.show()
-    
-    # Запуск основного цикла
     return app.exec()
 
 
