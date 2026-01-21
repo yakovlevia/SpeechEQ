@@ -121,38 +121,26 @@ class VideoProcessor:
                 overlap_duration=AUDIO_CONFIG["overlap_duration"],
                 sample_rate=AUDIO_CONFIG["sample_rate"],
             ):
-                seg_task = asyncio.create_task(
-                    self._process_segment_limited(segment)
-                )
+                seg_task = asyncio.create_task(self._process_segment_limited(segment))
                 pending_tasks.add(seg_task)
 
-                if len(pending_tasks) >= self.max_concurrent_segments:
-                    done, pending_tasks = await asyncio.wait(
-                        pending_tasks,
-                        return_when=asyncio.FIRST_COMPLETED
-                    )
+                done, pending_tasks = await asyncio.wait(
+                    pending_tasks,
+                    timeout=0.0,
+                    return_when=asyncio.FIRST_COMPLETED
+                )
 
-                    for finished in done:
-                        processed_segment = finished.result()
-                        await self._save_processed_segment(
-                            processed_segment,
-                            audio_dir,
-                            video_name,
-                            segments_list
-                        )
-                        segment_count += 1
-                        task.increment_progress()
+                for finished in done:
+                    processed_segment = finished.result()
+                    await self._save_processed_segment(processed_segment, audio_dir, video_name, segments_list)
+                    segment_count += 1
+                    task.increment_progress()
 
             if pending_tasks:
                 done, _ = await asyncio.wait(pending_tasks)
                 for finished in done:
                     processed_segment = finished.result()
-                    await self._save_processed_segment(
-                        processed_segment,
-                        audio_dir,
-                        video_name,
-                        segments_list
-                    )
+                    await self._save_processed_segment(processed_segment, audio_dir, video_name, segments_list)
                     segment_count += 1
                     task.increment_progress()
 
@@ -204,7 +192,6 @@ class VideoProcessor:
                 segment_duration=AUDIO_CONFIG["segment_duration"],
                 overlap_duration=AUDIO_CONFIG["overlap_duration"]
             )
-            print("aaa\n")
 
             # ------------------------------------------------------------------
             # 5. Склейка нового аудио с видео
@@ -263,22 +250,37 @@ class VideoProcessor:
     ) -> Path:
         """
         Собрать аудио с усреднением перекрытий и удалить временные сегменты.
+        Оптимизировано для большого числа сегментов и сохраняет правильный порядок.
+
+        Args:
+            task: Задача обработки видео
+            audio_dir: Папка с обработанными сегментами
+            segment_duration: Длительность сегмента (сек)
+            overlap_duration: Перекрытие при сборке (сек)
+
+        Returns:
+            Path к собранному WAV файлу
         """
         segments_list_path = audio_dir / "segments_list.txt"
         if not segments_list_path.exists():
             raise FileNotFoundError(f"Список сегментов не найден: {segments_list_path}")
 
         with open(segments_list_path, 'r', encoding='utf-8') as f:
-            segment_files = [line.strip().replace("file '", "").replace("'", "") for line in f.readlines()]
+            segment_files = [
+                line.strip().replace("file '", "").replace("'", "")
+                for line in f.readlines()
+            ]
 
         if not segment_files:
             raise RuntimeError("Нет сегментов для сборки аудио")
 
+        segment_files.sort(key=lambda x: int(Path(x).stem.split("_")[-1]))
+        assembled_list = []
+
         sr, audio_data = wavfile.read(audio_dir / segment_files[0])
         audio_data = audio_data.astype(np.float32) / 32767.0
-        assembled_audio = audio_data.copy()
+        assembled_list.append(audio_data)
 
-        step_samples = int((segment_duration - overlap_duration) * sr)
         overlap_samples = int(overlap_duration * sr)
 
         for seg_file in segment_files[1:]:
@@ -288,15 +290,16 @@ class VideoProcessor:
             if sr_seg != sr:
                 raise ValueError(f"Несовпадающий sample_rate: {sr_seg} != {sr}")
 
-            actual_overlap = min(overlap_samples, len(assembled_audio), len(seg_data))
-            if actual_overlap > 0:
-                assembled_audio[-actual_overlap:] = (
-                    assembled_audio[-actual_overlap:] + seg_data[:actual_overlap]
-                ) / 2
+            if overlap_samples > 0:
+                prev = assembled_list[-1]
+                actual_overlap = min(overlap_samples, len(prev), len(seg_data))
+                if actual_overlap > 0:
+                    prev[-actual_overlap:] = (prev[-actual_overlap:] + seg_data[:actual_overlap]) / 2
+                    seg_data = seg_data[actual_overlap:]
 
-            remaining = seg_data[actual_overlap:]
-            assembled_audio = np.concatenate([assembled_audio, remaining])
+            assembled_list.append(seg_data)
 
+        assembled_audio = np.concatenate(assembled_list)
         assembled_audio_int16 = np.clip(assembled_audio * 32767, -32768, 32767).astype(np.int16)
         output_wav_path = audio_dir / f"{Path(task.input_path).stem}_assembled.wav"
 
@@ -305,7 +308,6 @@ class VideoProcessor:
             None,
             lambda: wavfile.write(output_wav_path, sr, assembled_audio_int16)
         )
-
         for seg_file in segment_files:
             try:
                 os.remove(audio_dir / seg_file)
