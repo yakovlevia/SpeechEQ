@@ -28,6 +28,6 @@ source venv/bin/activate
 mkdir -p input output
 
 # Запуск примера
-echo "Запуск example.py..."
+echo "Запуск test.py..."
 echo ""
-python3 example.py
+python3 -m client.test
