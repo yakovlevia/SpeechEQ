@@ -238,7 +238,6 @@ class VideoProcessor:
                 video_without_audio=str(video_output_path),
                 assembled_audio_path=assembled_audio_path
             )
-            print("bbb\n")
 
             # ------------------------------------------------------------------
             # 6. Summary
@@ -287,11 +286,17 @@ class VideoProcessor:
         """
         Собирает отдельные аудио сегменты в единый файл с усреднением перекрытий.
         
+        Процесс включает:
+        1. Чтение списка сегментов
+        2. Постепенное наращивание аудио с усреднением областей перекрытия
+        3. Сохранение результата в WAV формате
+        4. Очистку временных файлов сегментов
+        
         Args:
             task (AudioCleanupTask): Задача обработки видео.
             audio_dir (Path): Папка с обработанными сегментами.
-            segment_duration (float, optional): Длительность сегмента.
-            overlap_duration (float, optional): Перекрытие при сборке.
+            segment_duration (float, optional): Длительность сегмента в секундах.
+            overlap_duration (float, optional): Перекрытие при сборке в секундах.
         
         Returns:
             Path: Путь к собранному WAV файлу.
@@ -302,7 +307,7 @@ class VideoProcessor:
             ValueError: Если частота дискретизации сегментов не совпадает.
         
         Note:
-            Удаляет временные файлы сегментов после сборки.
+            Удаляет временные файлы сегментов после сборки для экономии места.
         """
         segments_list_path = audio_dir / "segments_list.txt"
         if not segments_list_path.exists():
