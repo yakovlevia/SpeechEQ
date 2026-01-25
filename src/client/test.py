@@ -1,8 +1,10 @@
-# src/client/main.py
+# src/client/test.py
 import asyncio
 import logging
 from pathlib import Path
 import sys
+
+from client.video_queue import AudioCleanupTask
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -14,12 +16,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from .processing_manager import ProcessingManager
-from .video_queue import AudioCleanupTask
+from client.processing_manager import ProcessingManager
+from processing.core.processing_logic import AudioProcessingLogic
+from processing.core.settings import ProcessingSettings
+from processing.handlers.local import LocalAudioHandler
+
+from processing.dsp.noise_reduction import NoiseReductionDSP
+from processing.dsp.normalization import NormalizationDSP
+
+logic = AudioProcessingLogic(
+    dsp_methods=[
+        NoiseReductionDSP(),
+        NormalizationDSP(),
+    ],
+    ml_methods=[]
+)
+
+settings = ProcessingSettings(
+    noise_reduction=True,
+    normalization=True,
+)
+
+handlers = [LocalAudioHandler(processing_logic=logic)]
 
 
 async def process_videos():
     """Основная функция для обработки видео"""
+    handler = handlers[0]
     
     video_files = [
         "/mnt/d/diplom/video1.mp4",
@@ -50,7 +73,9 @@ async def process_videos():
         task = AudioCleanupTask(
             priority=priority,
             input_path=video_path,
-            output_path=final_output_path
+            output_path=final_output_path,
+            handler=handler,
+            handler_settings=settings
         )
         
         manager.add_video_task(task)

@@ -1,0 +1,24 @@
+# processing/handlers/server.py
+import numpy as np
+from .base import AudioHandler
+from processing.core.settings import ProcessingSettings
+
+
+class ServerAudioHandler(AudioHandler):
+    """
+    Серверная обработка (через API / RPC)
+    """
+
+    def process(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        settings: ProcessingSettings
+    ) -> np.ndarray:
+        # тут потом будет сериализация и отправка на сервер
+        # сейчас — та же логика
+        return self.processing_logic.process(
+            audio=audio,
+            sample_rate=sample_rate,
+            settings=settings
+        )

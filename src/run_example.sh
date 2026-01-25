@@ -24,9 +24,6 @@ fi
 echo "Активация виртуального окружения..."
 source venv/bin/activate
 
-# Создание директорий если их нет
-mkdir -p input output
-
 # Запуск примера
 echo "Запуск test.py..."
 echo ""
