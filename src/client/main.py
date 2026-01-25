@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# src/client/main.py
 """
 Основная точка входа в приложение
 """
@@ -8,7 +8,15 @@ from core.main_window import MainWindow
 
 
 def main():
-    """Основная функция приложения"""
+    """
+    Основная функция приложения.
+    
+    Создает QApplication, инициализирует главное окно
+    и запускает главный цикл событий.
+    
+    Returns:
+        int: Код возврата приложения.
+    """
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

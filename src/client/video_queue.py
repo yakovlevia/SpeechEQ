@@ -2,15 +2,35 @@
 import heapq
 from dataclasses import dataclass, field
 from typing import Any
+from processing.handlers.base import AudioHandler
+from processing.core.settings import ProcessingSettings
 
 
 @dataclass(order=True)
 class AudioCleanupTask:
-    """Класс для хранения информации об очистке аудио с видео"""
-    priority: int = field(compare=False)
+    """
+    Задача на очистку аудио из видео.
     
+    Attributes:
+        priority (int): Приоритет задачи (чем выше, тем важнее).
+        input_path (str): Путь к исходному видеофайлу.
+        output_path (str): Путь для сохранения обработанного видео.
+        handler (AudioHandler): Обработчик аудио для применения эффектов.
+        handler_settings (AudioHandlerSettings): Настройки обработчика.
+        total_segments (int): Общее количество аудио сегментов.
+        cleaned_segments (int): Количество обработанных сегментов.
+    """
+    priority: int = field(compare=False)
+
     input_path: str = field(compare=False)
     output_path: str = field(compare=False)
+
+    handler: AudioHandler = field(compare=False, default=None)
+    handler_settings: ProcessingSettings = field(
+        compare=False,
+        default_factory=ProcessingSettings
+    )
+
     total_segments: int = field(compare=False, default=0)
     cleaned_segments: int = field(compare=False, default=0)
     
@@ -34,53 +54,104 @@ class AudioCleanupTask:
                 self._counter == other._counter)
     
     def increment_progress(self, segments: int = 1) -> None:
-        """Увеличить количество очищенных сегментов"""
+        """
+        Увеличивает счетчик обработанных сегментов.
+        
+        Args:
+            segments (int, optional): Количество сегментов для добавления.
+                По умолчанию 1.
+        """
         if self.total_segments > 0:
             self.cleaned_segments = min(self.cleaned_segments + segments, self.total_segments)
         else:
             self.cleaned_segments += segments
     
     def update_progress(self, cleaned_segments: int) -> None:
-        """Обновить количество очищенных сегментов"""
+        """
+        Обновляет счетчик обработанных сегментов.
+        
+        Args:
+            cleaned_segments (int): Новое количество обработанных сегментов.
+        """
         if self.total_segments > 0:
             self.cleaned_segments = min(cleaned_segments, self.total_segments)
         else:
             self.cleaned_segments = cleaned_segments
     
     def set_total_segments(self, total_segments: int) -> None:
-        """Установить общее количество сегментов"""
+        """
+        Устанавливает общее количество сегментов.
+        
+        Args:
+            total_segments (int): Общее количество сегментов в видео.
+        """
         self.total_segments = max(0, total_segments)
         if self.cleaned_segments > self.total_segments:
             self.cleaned_segments = self.total_segments
     
     def get_progress_percentage(self) -> float:
-        """Получить процент выполнения"""
+        """
+        Рассчитывает процент выполнения задачи.
+        
+        Returns:
+            float: Процент выполнения от 0.0 до 100.0.
+        """
         if self.total_segments == 0:
             return 0.0 if self.cleaned_segments == 0 else 100.0
         return (self.cleaned_segments / self.total_segments) * 100
     
     def is_completed(self) -> bool:
-        """Проверить, завершена ли задача"""
+        """
+        Проверяет, завершена ли задача.
+        
+        Returns:
+            bool: True если все сегменты обработаны, иначе False.
+        """
         if self.total_segments == 0:
             return False
         return self.cleaned_segments >= self.total_segments
 
 
 class PriorityTaskQueue:
-    """Класс для работы с приоритетной очередью задач"""
+    """
+    Приоритетная очередь для управления задачами обработки.
+    
+    Реализует min-heap для эффективного извлечения задач
+    с наивысшим приоритетом.
+    
+    Attributes:
+        _heap (list): Внутренняя структура кучи.
+        _set (set): Множество для быстрой проверки наличия задач.
+    """
     
     def __init__(self):
         self._heap = []
         self._set = set()
     
     def add_task(self, task: AudioCleanupTask) -> None:
-        """Добавить задачу в очередь"""
+        """
+        Добавляет задачу в очередь.
+        
+        Args:
+            task (AudioCleanupTask): Задача для добавления.
+        
+        Note:
+            Игнорирует дубликаты задач.
+        """
         if task not in self._set:
             heapq.heappush(self._heap, (-task.priority, task))
             self._set.add(task)
     
     def get_highest_priority_task(self) -> AudioCleanupTask:
-        """Получить задачу с наивысшим приоритетом"""
+        """
+        Извлекает задачу с наивысшим приоритетом.
+        
+        Returns:
+            AudioCleanupTask: Задача с максимальным приоритетом.
+        
+        Raises:
+            IndexError: Если очередь пуста.
+        """
         if not self._heap:
             raise IndexError("Очередь пуста")
         
@@ -90,7 +161,15 @@ class PriorityTaskQueue:
         return task
     
     def peek_highest_priority(self) -> AudioCleanupTask:
-        """Посмотреть задачу с наивысшим приоритетом без удаления"""
+        """
+        Просматривает задачу с наивысшим приоритетом без удаления.
+        
+        Returns:
+            AudioCleanupTask: Задача с максимальным приоритетом.
+        
+        Raises:
+            IndexError: Если очередь пуста.
+        """
         if not self._heap:
             raise IndexError("Очередь пуста")
         
@@ -98,7 +177,15 @@ class PriorityTaskQueue:
         return task
     
     def remove_task(self, task: AudioCleanupTask) -> bool:
-        """Удалить конкретную задачу из очереди"""
+        """
+        Удаляет конкретную задачу из очереди.
+        
+        Args:
+            task (AudioCleanupTask): Задача для удаления.
+        
+        Returns:
+            bool: True если задача была удалена, False если не найдена.
+        """
         if task in self._set:
             self._set.remove(task)
             return True

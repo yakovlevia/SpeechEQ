@@ -11,7 +11,17 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessingManager:
-    """Менеджер для управления всей обработкой видео"""
+    """
+    Менеджер для управления очередью и обработкой видео задач.
+    
+    Координирует работу очереди задач и видеопроцессора.
+    
+    Attributes:
+        task_queue (PriorityTaskQueue): Приоритетная очередь задач.
+        video_processor (VideoProcessor): Процессор для обработки видео.
+        _is_processing (bool): Флаг активности обработки.
+        _processing_task (Optional[asyncio.Task]): Активная задача обработки.
+    """
     
     def __init__(self):
         self.task_queue = PriorityTaskQueue()
@@ -24,12 +34,22 @@ class ProcessingManager:
         self._processing_task: Optional[asyncio.Task] = None
     
     def add_video_task(self, task: AudioCleanupTask) -> None:
-        """Добавить задачу на обработку видео"""
+        """
+        Добавляет задачу в очередь обработки.
+        
+        Args:
+            task (AudioCleanupTask): Задача на обработку видео.
+        """
         self.task_queue.add_task(task)
         logger.info(f"Задача добавлена в очередь: {task.input_path}")
     
     async def start_processing(self) -> None:
-        """Запустить обработку задач из очереди"""
+        """
+        Запускает обработку задач из очереди.
+        
+        Note:
+            Если обработка уже запущена, выводит предупреждение.
+        """
         if self._is_processing:
             logger.warning("Обработка уже запущена")
             return
@@ -45,7 +65,12 @@ class ProcessingManager:
             self._is_processing = False
     
     async def stop_processing(self) -> None:
-        """Остановить обработку"""
+        """
+        Останавливает обработку задач.
+        
+        Note:
+            Корректно завершает активные задачи.
+        """
         self._is_processing = False
         if self._processing_task and not self._processing_task.done():
             self._processing_task.cancel()
@@ -55,6 +80,14 @@ class ProcessingManager:
                 logger.info("Обработка остановлена")
     
     async def _process_queue(self) -> None:
+        """
+        Внутренний метод для непрерывной обработки очереди.
+        
+        Note:
+            Работает в цикле, пока включен флаг _is_processing.
+            Обрабатывает задачи по приоритету.
+            Выводит подробные логи о ходе выполнения.
+        """
         logger.info("Процессор очереди запущен (daemon mode)")
 
         while self._is_processing:
