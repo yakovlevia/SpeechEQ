@@ -1,4 +1,4 @@
-# src/client/test.py
+# ФАЙЛ: client/test.py
 import asyncio
 import logging
 from pathlib import Path
@@ -19,23 +19,45 @@ logger = logging.getLogger(__name__)
 from client.processing_manager import ProcessingManager
 from processing.core.processing_logic import AudioProcessingLogic
 from processing.core.settings import ProcessingSettings
-from processing.handlers.local import LocalAudioHandler
 
-from processing.dsp.noise_reduction import NoiseReductionDSP
-from processing.dsp.normalization import NormalizationDSP
+from processing.dsp import (
+    NoiseReductionDSP,
+    HumRemovalDSP,
+    DeEsserDSP,
+    SpeechEQDSP,
+    LoudnessNormalizationDSP
+)
 
 logic = AudioProcessingLogic(
     dsp_methods=[
+        HumRemovalDSP(),
         NoiseReductionDSP(),
-        NormalizationDSP(),
+        DeEsserDSP(),
+        SpeechEQDSP(),
+        LoudnessNormalizationDSP(),
     ],
     ml_methods=[]
 )
 
 settings = ProcessingSettings(
-    noise_reduction=True,
-    normalization=True,
+    hum_removal=True,            # Включить удаление гула
+    hum_frequency=50.0,          # 50 Гц (для Европы)
+    hum_removal_strength=0.8,    # Сила удаления
+    
+    noise_reduction=True,        # Включить подавление шума
+    noise_reduction_level=0.7,   # Уровень подавления
+    
+    deesser=True,                # Включить де-эссер
+    deesser_strength=0.6,        # Сила де-эссера
+    
+    eq=True,                     # Включить эквалайзер
+    eq_profile="speech_clarity", # Профиль для разборчивости речи
+    
+    normalization=True,          # Включить нормализацию
+    normalization_target=-16.0,  # Целевой уровень -16 LUFS
 )
+
+from processing.handlers.local import LocalAudioHandler
 
 handlers = [LocalAudioHandler(processing_logic=logic)]
 
@@ -45,6 +67,7 @@ async def process_videos():
     handler = handlers[0]
     
     video_files = [
+        "/mnt/d/diplom/video_small.mp4",
         "/mnt/d/diplom/video1.mp4",
     ]
     
@@ -57,7 +80,6 @@ async def process_videos():
     
         priority = i + 1
         
-
         base_dir = Path("/mnt/d/diplom")
         
         # Видео без аудио будет сохранено в скрытую папку .video
@@ -68,7 +90,7 @@ async def process_videos():
         audio_fragments_dir = base_dir / ".audio"
         audio_fragments_dir.mkdir(exist_ok=True)
         
-        final_output_path = base_dir / f"{Path(video_path).stem}_final.mp4"
+        final_output_path = base_dir / f"{Path(video_path).stem}_processed.mp4"
         
         task = AudioCleanupTask(
             priority=priority,

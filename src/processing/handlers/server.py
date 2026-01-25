@@ -6,7 +6,7 @@ from processing.core.settings import ProcessingSettings
 
 class ServerAudioHandler(AudioHandler):
     """
-    Серверная обработка (через API / RPC)
+    Серверная обработка (gRPC)
     """
 
     def process(
@@ -16,7 +16,6 @@ class ServerAudioHandler(AudioHandler):
         settings: ProcessingSettings
     ) -> np.ndarray:
         # тут потом будет сериализация и отправка на сервер
-        # сейчас — та же логика
         return self.processing_logic.process(
             audio=audio,
             sample_rate=sample_rate,

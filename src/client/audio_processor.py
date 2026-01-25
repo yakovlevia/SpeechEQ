@@ -330,7 +330,7 @@ class AudioProcessor:
     def process_audio_segment(
         self,
         audio_segment: AudioSegment,
-        handler,
+        handler: AudioHandler,
         handler_settings: ProcessingSettings,
     ) -> AudioSegment:
         """
@@ -338,8 +338,8 @@ class AudioProcessor:
         
         Args:
             audio_segment (AudioSegment): Входной аудио сегмент.
-            handler: Обработчик аудио, реализующий метод process().
-            handler_settings: Настройки для обработчика.
+            handler (AudioHandler): Обработчик аудио, реализующий метод process().
+            handler_settings (ProcessingSettings): Настройки для обработчика.
         
         Returns:
             AudioSegment: Обработанный аудио сегмент с обновленным task_id.
