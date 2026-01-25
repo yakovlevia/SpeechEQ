@@ -11,6 +11,7 @@ FFMPEG_CONFIG = {
 # Конфигурация очередей
 QUEUE_CONFIG = {
     "audio_queue_max_size": 500,
+    "max_concurrent_videos": 3,
 }
 
 # Конфигурация аудио обработки
