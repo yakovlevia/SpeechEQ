@@ -3,6 +3,9 @@ import numpy as np
 from typing import List
 from processing.core.settings import ProcessingSettings
 from processing.dsp.base import DSPMethod
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class AudioProcessingLogic:
@@ -69,7 +72,7 @@ class AudioProcessingLogic:
             try:
                 if dsp.is_enabled(settings):
                     # Логируем начало обработки
-                    print(f"Применение {dsp.__class__.__name__}...")
+                    logger.debug(f"Применение {dsp.__class__.__name__}...")
                     processed = dsp.process(processed, sample_rate, settings)
             except Exception as e:
                 raise RuntimeError(

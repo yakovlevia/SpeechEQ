@@ -83,6 +83,25 @@ class VideoProcessor:
             logger.error(f"Ошибка при расчете количества сегментов: {str(e)}")
             return 1000
 
+    async def cancel_processing_by_path(self, video_path: str) -> bool:
+        """
+        Отменяет обработку видео по пути.
+        
+        Args:
+            video_path (str): Путь к видеофайлу.
+        
+        Returns:
+            bool: True если задача найдена и отменена, False иначе.
+        """
+        task = self._processing_tasks.get(video_path)
+        if task and not task.done():
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                logger.info(f"Обработка видео отменена: {video_path}")
+                return True
+        return False
 
     async def process_video(self, task: AudioCleanupTask) -> None:
         """
@@ -169,6 +188,10 @@ class VideoProcessor:
                 for finished in done:
                     processed_segment = finished.result()
                     await self._save_processed_segment(processed_segment, audio_dir, video_name, segments_list)
+                    if (segment_count % 50 == 0):
+                        logger.info(f"Сегмент {segment_count} из ~{task.total_segments} обработан и сохранен в {audio_dir}.")
+                    else:
+                        logger.debug(f"Сегмент {segment_count} обработан и сохранен в {audio_dir}.")
                     segment_count += 1
                     task.increment_progress()
 

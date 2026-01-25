@@ -7,7 +7,7 @@ import sys
 from client.video_queue import AudioCleanupTask
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
@@ -69,6 +69,8 @@ async def process_videos():
     video_files = [
         "/mnt/d/diplom/video_small.mp4",
         "/mnt/d/diplom/video1.mp4",
+        "/mnt/d/diplom/video_small2.mp4",
+        "/mnt/d/diplom/video_small3.mp4",
     ]
     
     manager = ProcessingManager()
