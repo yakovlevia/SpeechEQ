@@ -31,12 +31,12 @@ class MainWindow(QMainWindow):
         self.ui.mainScreenBtn.clicked.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.mainScreen)
         )
+        self.ui.connectionScreenBtn.clicked.connect(
+            lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.connectionScreen)
+        )
         self.ui.processingScreenBtn.clicked.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.processingScreen)
         )
         self.ui.progressScreenBtn.clicked.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.progressScreen)
-        )
-        self.ui.emptyScreenBtn.clicked.connect(
-            lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.emptyScreen)
         )
