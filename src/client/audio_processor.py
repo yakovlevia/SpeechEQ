@@ -1,4 +1,3 @@
-# src/client/audio_processor.py
 import asyncio
 import os
 import subprocess
@@ -203,35 +202,50 @@ class AudioProcessor:
         logger.debug(f"Создание временного файла: {temp_path}")
         
         try:
-            cmd = f'ffmpeg -ss {start_time} -i "{video_path}" -t {duration} -ar {sample_rate} -ac 1 -f wav -y "{temp_path}"'
-            logger.debug(f"Запуск команды ffmpeg: {cmd}")
-            result = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=10
+            cmd = [
+                self.ffmpeg_path,
+                '-ss', str(start_time),
+                '-i', video_path,
+                '-t', str(duration),
+                '-ar', str(sample_rate),
+                '-ac', '1',
+                '-f', 'wav',
+                '-y', temp_path
+            ]
+            logger.debug(f"Запуск команды ffmpeg: {' '.join(cmd)}")
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
             )
+
+            stdout, stderr = await process.communicate()
             
-            logger.debug(f"FFmpeg завершился с кодом возврата: {result.returncode}")
+            logger.debug(f"FFmpeg завершился с кодом возврата: {process.returncode}")
             
-            if result.returncode != 0:
-                error_msg = result.stderr[:200] if result.stderr else "Неизвестная ошибка"
+            if process.returncode != 0:
+                error_msg = stderr.decode()[:200] if stderr else "Неизвестная ошибка"
                 logger.warning(f"Ошибка ffmpeg при извлечении аудио ({start_time:.1f}-{start_time+duration:.1f}): {error_msg}")
                 return None
             
             if not os.path.exists(temp_path):
                 logger.warning(f"Временный файл не создан: {temp_path}")
                 return None
-            
-            file_size = os.path.getsize(temp_path)
+
+            loop = asyncio.get_event_loop()
+            file_size = await loop.run_in_executor(None, lambda: os.path.getsize(temp_path) if os.path.exists(temp_path) else 0)
             logger.debug(f"Временный файл создан, размер: {file_size} байт")
             
             if file_size < 100:
                 logger.warning(f"Временный файл слишком мал: {file_size} байт")
                 return None
-            
-            audio_data = self._read_wav_file_sync(temp_path)
+
+            audio_data = await loop.run_in_executor(
+                None, 
+                self._read_wav_file_sync, 
+                temp_path
+            )
             
             if audio_data is None:
                 logger.warning(f"Не удалось прочитать аудио из файла: {temp_path}")
@@ -240,7 +254,7 @@ class AudioProcessor:
                 
             return audio_data
             
-        except subprocess.TimeoutExpired:
+        except asyncio.TimeoutError:
             logger.warning(f"Таймаут извлечения аудио сегмента: {start_time:.1f}-{start_time+duration:.1f}")
             return None
         except Exception as e:
@@ -249,7 +263,8 @@ class AudioProcessor:
         finally:
             try:
                 if os.path.exists(temp_path):
-                    os.unlink(temp_path)
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, os.unlink, temp_path)
                     logger.debug(f"Удален временный файл: {temp_path}")
             except Exception as e:
                 logger.debug(f"Не удалось удалить временный файл {temp_path}: {str(e)}")

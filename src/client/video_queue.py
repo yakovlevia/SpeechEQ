@@ -1,4 +1,3 @@
-# src/client/video_queue.py
 import heapq
 from dataclasses import dataclass, field
 from typing import Any

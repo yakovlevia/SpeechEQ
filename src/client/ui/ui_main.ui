@@ -1243,13 +1243,27 @@
          </widget>
         </item>
         
-        <!-- Упрощенные кнопки управления -->
+        <!-- Кнопки управления (только по выбору) -->
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_6">
           <item>
+           <spacer name="horizontalSpacer_progress_left">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          
+          <item>
            <widget class="QPushButton" name="pauseTasksBtn">
             <property name="text">
-             <string>Пауза</string>
+             <string>Пауза (глобальная)</string>
             </property>
             <property name="font">
              <font>
@@ -1258,7 +1272,7 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>150</width>
               <height>35</height>
              </size>
             </property>
@@ -1280,9 +1294,9 @@
           </item>
           
           <item>
-           <widget class="QPushButton" name="cancelSelectedBtn">
+           <widget class="QPushButton" name="pauseSelectedBtn">
             <property name="text">
-             <string>Отменить выбранные</string>
+             <string>⏸ Приостановить выбранные</string>
             </property>
             <property name="font">
              <font>
@@ -1291,9 +1305,12 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>180</width>
               <height>35</height>
              </size>
+            </property>
+            <property name="enabled">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1313,9 +1330,9 @@
           </item>
           
           <item>
-           <widget class="QPushButton" name="clearFinishedBtn">
+           <widget class="QPushButton" name="resumeSelectedBtn">
             <property name="text">
-             <string>Очистить готовые</string>
+             <string>▶ Возобновить выбранные</string>
             </property>
             <property name="font">
              <font>
@@ -1324,32 +1341,12 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>180</width>
               <height>35</height>
              </size>
             </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-          <item>
-           <widget class="QPushButton" name="openLogBtn">
-            <property name="text">
-             <string>Открыть лог</string>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>10</pointsize>
-             </font>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>35</height>
-             </size>
+            <property name="enabled">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1367,11 +1364,30 @@
             </property>
            </spacer>
           </item>
+         </layout>
+        </item>
+        
+        <!-- Вторая строка кнопок -->
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <spacer name="horizontalSpacer_progress_left2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
           
           <item>
-           <widget class="QPushButton" name="cancelCurrentBtn">
+           <widget class="QPushButton" name="cancelSelectedBtn">
             <property name="text">
-             <string>Отменить текущий</string>
+             <string>✖ Отменить выбранные</string>
             </property>
             <property name="font">
              <font>
@@ -1380,11 +1396,94 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>0</width>
+              <width>180</width>
+              <height>35</height>
+             </size>
+            </property>
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          
+          <item>
+           <spacer name="horizontalSpacer_progress_mid4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          
+          <item>
+           <widget class="QPushButton" name="clearFinishedBtn">
+            <property name="text">
+             <string>🗑 Очистить готовые</string>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>180</width>
               <height>35</height>
              </size>
             </property>
            </widget>
+          </item>
+          
+          <item>
+           <spacer name="horizontalSpacer_progress_mid5">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          
+          <item>
+           <widget class="QPushButton" name="openLogBtn">
+            <property name="text">
+             <string>📋 Открыть лог</string>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+             </font>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>150</width>
+              <height>35</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          
+          <item>
+           <spacer name="horizontalSpacer_progress_right">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>10</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>

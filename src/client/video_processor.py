@@ -1,20 +1,16 @@
-# src/client/video_processor.py
 import asyncio
 import os
-import subprocess
 import json
 import numpy as np
 import datetime
 from scipy.io import wavfile
 from pathlib import Path
-from typing import Optional, Dict, Any, List
-from dataclasses import asdict
+from typing import Dict, Any, List
 import logging
-import tempfile
 
 from .video_queue import AudioCleanupTask
 from .audio_processor import AudioProcessor, AudioSegment
-from .config import FFMPEG_CONFIG, QUEUE_CONFIG, AUDIO_CONFIG, PATHS
+from .config import AUDIO_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +99,7 @@ class VideoProcessor:
                 return True
         return False
 
-    async def process_video(self, task: AudioCleanupTask) -> None:
+    async def process_video(self, task: AudioCleanupTask, manager=None) -> None:
         """
         Асинхронно обрабатывает видео задачу от начала до конца.
         
@@ -116,6 +112,7 @@ class VideoProcessor:
         
         Args:
             task (AudioCleanupTask): Задача на обработку видео.
+            manager (ProcessingManager, optional): Менеджер для проверки приостановки.
         
         Raises:
             FileNotFoundError: Если видеофайл не существует.
@@ -129,6 +126,13 @@ class VideoProcessor:
 
             if not os.path.exists(task.input_path):
                 raise FileNotFoundError(f"Файл не найден: {task.input_path}")
+
+            if manager:
+                await manager.check_paused(task.input_path)
+
+            if manager and manager.is_task_cancelled(task.input_path):
+                logger.info(f"Задача отменена: {task.input_path}")
+                return
 
             total_segments = await self.calculate_total_segments(task.input_path)
             task.set_total_segments(total_segments)
@@ -170,6 +174,15 @@ class VideoProcessor:
                 overlap_duration=AUDIO_CONFIG["overlap_duration"],
                 sample_rate=AUDIO_CONFIG["sample_rate"],
             ):
+                if manager:
+                    await manager.check_paused(task.input_path)
+
+                if manager and manager.is_task_cancelled(task.input_path):
+                    logger.info(f"Задача отменена во время обработки: {task.input_path}")
+                    for t in pending_tasks:
+                        t.cancel()
+                    return
+                
                 seg_task = asyncio.create_task(
                     self._process_segment_limited(
                         segment,
@@ -186,18 +199,25 @@ class VideoProcessor:
                 )
 
                 for finished in done:
+                    if manager:
+                        await manager.check_paused(task.input_path)
+                        
                     processed_segment = finished.result()
                     await self._save_processed_segment(processed_segment, audio_dir, video_name, segments_list)
-                    if (segment_count % 50 == 0):
-                        logger.info(f"Сегмент {segment_count} из ~{task.total_segments} обработан и сохранен в {audio_dir}.")
-                    else:
-                        logger.debug(f"Сегмент {segment_count} обработан и сохранен в {audio_dir}.")
                     segment_count += 1
                     task.increment_progress()
+                    
+                    if segment_count % 50 == 0:
+                        logger.info(f"Сегмент {segment_count} из ~{task.total_segments} обработан")
+                    else:
+                        logger.debug(f"Сегмент {segment_count} обработан и сохранен в {audio_dir}.")
 
             if pending_tasks:
                 done, _ = await asyncio.wait(pending_tasks)
                 for finished in done:
+                    if manager:
+                        await manager.check_paused(task.input_path)
+                        
                     processed_segment = finished.result()
                     await self._save_processed_segment(processed_segment, audio_dir, video_name, segments_list)
                     segment_count += 1
@@ -293,6 +313,9 @@ class VideoProcessor:
                 f"сегментов: {segment_count}"
             )
 
+        except asyncio.CancelledError:
+            logger.info(f"Обработка видео отменена: {task.input_path}")
+            raise
         except Exception as e:
             logger.exception(
                 f"Ошибка при обработке видео {task.input_path}: {e}"
