@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'ui_main.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.1
+## Created by: Qt User Interface Compiler version 6.10.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -569,10 +569,14 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_6 = QHBoxLayout()
         self.horizontalLayout_6.setObjectName(u"horizontalLayout_6")
+        self.horizontalSpacer_progress_left = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_6.addItem(self.horizontalSpacer_progress_left)
+
         self.pauseTasksBtn = QPushButton(self.progressScreen)
         self.pauseTasksBtn.setObjectName(u"pauseTasksBtn")
         self.pauseTasksBtn.setFont(font)
-        self.pauseTasksBtn.setMinimumSize(QSize(0, 35))
+        self.pauseTasksBtn.setMinimumSize(QSize(150, 35))
 
         self.horizontalLayout_6.addWidget(self.pauseTasksBtn)
 
@@ -580,46 +584,72 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_6.addItem(self.horizontalSpacer_progress_mid1)
 
-        self.cancelSelectedBtn = QPushButton(self.progressScreen)
-        self.cancelSelectedBtn.setObjectName(u"cancelSelectedBtn")
-        self.cancelSelectedBtn.setFont(font)
-        self.cancelSelectedBtn.setMinimumSize(QSize(0, 35))
+        self.pauseSelectedBtn = QPushButton(self.progressScreen)
+        self.pauseSelectedBtn.setObjectName(u"pauseSelectedBtn")
+        self.pauseSelectedBtn.setFont(font)
+        self.pauseSelectedBtn.setMinimumSize(QSize(180, 35))
+        self.pauseSelectedBtn.setEnabled(False)
 
-        self.horizontalLayout_6.addWidget(self.cancelSelectedBtn)
+        self.horizontalLayout_6.addWidget(self.pauseSelectedBtn)
 
         self.horizontalSpacer_progress_mid2 = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         self.horizontalLayout_6.addItem(self.horizontalSpacer_progress_mid2)
 
-        self.clearFinishedBtn = QPushButton(self.progressScreen)
-        self.clearFinishedBtn.setObjectName(u"clearFinishedBtn")
-        self.clearFinishedBtn.setFont(font)
-        self.clearFinishedBtn.setMinimumSize(QSize(0, 35))
+        self.resumeSelectedBtn = QPushButton(self.progressScreen)
+        self.resumeSelectedBtn.setObjectName(u"resumeSelectedBtn")
+        self.resumeSelectedBtn.setFont(font)
+        self.resumeSelectedBtn.setMinimumSize(QSize(180, 35))
+        self.resumeSelectedBtn.setEnabled(False)
 
-        self.horizontalLayout_6.addWidget(self.clearFinishedBtn)
+        self.horizontalLayout_6.addWidget(self.resumeSelectedBtn)
+
+        self.horizontalSpacer_progress_mid3 = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_6.addItem(self.horizontalSpacer_progress_mid3)
 
 
         self.verticalLayout_7.addLayout(self.horizontalLayout_6)
 
         self.horizontalLayout_7 = QHBoxLayout()
         self.horizontalLayout_7.setObjectName(u"horizontalLayout_7")
+        self.horizontalSpacer_progress_left2 = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_progress_left2)
+
+        self.cancelSelectedBtn = QPushButton(self.progressScreen)
+        self.cancelSelectedBtn.setObjectName(u"cancelSelectedBtn")
+        self.cancelSelectedBtn.setFont(font)
+        self.cancelSelectedBtn.setMinimumSize(QSize(180, 35))
+        self.cancelSelectedBtn.setEnabled(False)
+
+        self.horizontalLayout_7.addWidget(self.cancelSelectedBtn)
+
+        self.horizontalSpacer_progress_mid4 = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_progress_mid4)
+
+        self.clearFinishedBtn = QPushButton(self.progressScreen)
+        self.clearFinishedBtn.setObjectName(u"clearFinishedBtn")
+        self.clearFinishedBtn.setFont(font)
+        self.clearFinishedBtn.setMinimumSize(QSize(180, 35))
+
+        self.horizontalLayout_7.addWidget(self.clearFinishedBtn)
+
+        self.horizontalSpacer_progress_mid5 = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_progress_mid5)
+
         self.openLogBtn = QPushButton(self.progressScreen)
         self.openLogBtn.setObjectName(u"openLogBtn")
         self.openLogBtn.setFont(font)
-        self.openLogBtn.setMinimumSize(QSize(0, 35))
+        self.openLogBtn.setMinimumSize(QSize(150, 35))
 
         self.horizontalLayout_7.addWidget(self.openLogBtn)
 
-        self.horizontalSpacer_progress_mid3 = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_progress_right = QSpacerItem(10, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_7.addItem(self.horizontalSpacer_progress_mid3)
-
-        self.cancelCurrentBtn = QPushButton(self.progressScreen)
-        self.cancelCurrentBtn.setObjectName(u"cancelCurrentBtn")
-        self.cancelCurrentBtn.setFont(font)
-        self.cancelCurrentBtn.setMinimumSize(QSize(0, 35))
-
-        self.horizontalLayout_7.addWidget(self.cancelCurrentBtn)
+        self.horizontalLayout_7.addItem(self.horizontalSpacer_progress_right)
 
 
         self.verticalLayout_7.addLayout(self.horizontalLayout_7)
@@ -769,11 +799,12 @@ class Ui_MainWindow(object):
         self.totalProgressLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0449\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441:", None))
         self.timeRemainingLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0432\u0448\u0435\u0435\u0441\u044f \u0432\u0440\u0435\u043c\u044f: --", None))
         self.errorNotificationLabel.setText("")
-        self.pauseTasksBtn.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430", None))
-        self.cancelSelectedBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0435", None))
-        self.clearFinishedBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0447\u0438\u0441\u0442\u0438\u0442\u044c \u0433\u043e\u0442\u043e\u0432\u044b\u0435", None))
-        self.openLogBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u043e\u0433", None))
-        self.cancelCurrentBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0439", None))
+        self.pauseTasksBtn.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430 (\u0433\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u0430\u044f)", None))
+        self.pauseSelectedBtn.setText(QCoreApplication.translate("MainWindow", u"\u23f8 \u041f\u0440\u0438\u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0435", None))
+        self.resumeSelectedBtn.setText(QCoreApplication.translate("MainWindow", u"\u25b6 \u0412\u043e\u0437\u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0435", None))
+        self.cancelSelectedBtn.setText(QCoreApplication.translate("MainWindow", u"\u2716 \u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0435", None))
+        self.clearFinishedBtn.setText(QCoreApplication.translate("MainWindow", u"\U0001f5d1 \U0000041e\U00000447\U00000438\U00000441\U00000442\U00000438\U00000442\U0000044c \U00000433\U0000043e\U00000442\U0000043e\U00000432\U0000044b\U00000435", None))
+        self.openLogBtn.setText(QCoreApplication.translate("MainWindow", u"\U0001f4cb \U0000041e\U00000442\U0000043a\U00000440\U0000044b\U00000442\U0000044c \U0000043b\U0000043e\U00000433", None))
         self.mainScreenBtn.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0422\u0410\u0420\u0422", None))
         self.connectionScreenBtn.setText(QCoreApplication.translate("MainWindow", u"\u041f\u041e\u0414\u041a\u041b\u042e\u0427\u0415\u041d\u0418\u0415", None))
         self.processingScreenBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0411\u0420\u0410\u0411\u041e\u0422\u041a\u0410", None))

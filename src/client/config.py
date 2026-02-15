@@ -1,4 +1,3 @@
-# src/client/config.py
 import os
 from pathlib import Path
 
