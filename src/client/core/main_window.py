@@ -3,7 +3,7 @@
 """
 import asyncio
 import logging
-from PySide6.QtCore import QSettings
+from PySide6.QtCore import QSettings, QThread
 from PySide6.QtWidgets import QMainWindow, QMessageBox
 
 from client.ui.ui_mainwindow import Ui_MainWindow
@@ -12,7 +12,7 @@ from client.screens.main_screen import MainScreenLogic
 from client.screens.connection_screen import ConnectionScreenLogic, ConnectionWorker
 from client.screens.processing_screen import ProcessingScreenLogic
 from client.screens.progress_screen import ProgressScreenLogic
-
+from client.grpc_client import GRPCConnectionManager
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +29,24 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle("SpeechEQ v1.0")
-        self.connection_worker = ConnectionWorker()
-        self.connection_worker.moveToThread(self.thread())
+        
+        self.connection_manager = GRPCConnectionManager()
+        self.connection_manager.set_local_handler(audio_handler)
+    
+        self.connection_thread = QThread()
+        self.connection_worker = ConnectionWorker(self.connection_manager)
+        self.connection_worker.moveToThread(self.connection_thread)
+        
+        self.connection_thread.started.connect(self.connection_worker.setup_asyncio)
+        self.connection_thread.finished.connect(self.connection_worker.deleteLater)
+
+        self.connection_thread.start()
+        
         self.init_screen_logic()
         self.setup_navigation()
         self.connect_signals()
         self.restore_paused_tasks()
+        
         logger.info("Главное окно инициализировано")
 
     def init_screen_logic(self):
@@ -49,7 +61,8 @@ class MainWindow(QMainWindow):
             self.ui, 
             self,
             audio_handler=self.audio_handler,
-            default_settings=self.default_settings
+            default_settings=self.default_settings,
+            connection_manager=self.connection_manager
         )
         self.progress_screen = ProgressScreenLogic(
             self.ui, 
@@ -199,6 +212,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Обработка закрытия окна"""
+        logger.info("Закрытие главного окна")
+
         paused_tasks = self.processing_manager.get_paused_tasks()
         if paused_tasks:
             settings = QSettings("SpeechEQ", "Session")
@@ -221,8 +236,31 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
 
+        if hasattr(self, 'connection_manager') and not self.connection_manager.is_local():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(self.connection_manager.disconnect_from_server())
+            except Exception as e:
+                logger.error(f"Ошибка при отключении от сервера: {e}")
+            finally:
+                loop.close()
+
         if hasattr(self, 'processing_worker'):
+            logger.info("Остановка рабочего потока обработки...")
             self.processing_worker.stop()
+
+        if hasattr(self, 'connection_worker'):
+            logger.info("Остановка потока подключения...")
+            self.connection_worker.stop()
+        
+        if hasattr(self, 'connection_thread') and self.connection_thread.isRunning():
+            logger.info("Ожидание завершения потока подключения...")
+            self.connection_thread.quit()
+            if not self.connection_thread.wait(3000):
+                logger.warning("Поток подключения не завершился, принудительное завершение")
+                self.connection_thread.terminate()
+                self.connection_thread.wait()
         
         logger.info("Завершение работы приложения")
         event.accept()

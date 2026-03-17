@@ -25,8 +25,7 @@ class ProcessingSettings:
     normalization_target: float = -16.0  # Целевой уровень LUFS
     
     # ===== ML FLAGS =====
-    ml_enhance: bool = False
-    ml_denoise: bool = False
+    ml_model: bool = False
     
     # ===== ML PARAMS =====
     ml_model_name: str = "base"
