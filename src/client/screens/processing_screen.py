@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Логика экрана обработки и выбора источников
 """
@@ -21,12 +20,21 @@ class ProcessingScreenLogic(QObject):
     tasks_added = Signal(list)
     processing_started = Signal()
 
-    def __init__(self, ui, parent, audio_handler, default_settings):
+    def __init__(self, ui, parent, audio_handler, default_settings, connection_manager=None):
+        """
+        Args:
+            ui: Интерфейс
+            parent: Родительский объект
+            audio_handler: Обработчик аудио по умолчанию (локальный)
+            default_settings: Настройки по умолчанию
+            connection_manager: Менеджер подключения к серверу (опционально)
+        """
         super().__init__(parent)
         self.ui = ui
         self.parent = parent
         self.audio_handler = audio_handler
         self.default_settings = default_settings
+        self.connection_manager = connection_manager
         self.processing_worker = None
         self.selected_files = []
         self.load_settings()
@@ -36,6 +44,16 @@ class ProcessingScreenLogic(QObject):
     def set_processing_worker(self, worker):
         """Установка рабочего потока обработки"""
         self.processing_worker = worker
+    
+    def get_current_handler(self):
+        """
+        Возвращает текущий обработчик в зависимости от режима работы.
+        Если подключены к серверу, возвращает gRPC обработчик,
+        иначе возвращает локальный обработчик.
+        """
+        if self.connection_manager:
+            return self.connection_manager.get_current_handler()
+        return self.audio_handler
     
     def connect_signals(self):
         """Подключение сигналов кнопок"""
@@ -269,10 +287,10 @@ class ProcessingScreenLogic(QObject):
         settings.normalization = self.ui.normalizationCheck.isChecked()
         settings.normalization_target = float(self.ui.lufsSpinBox.value())
         
-        # ML настройки (пока заглушка)
+        # ML настройки
         ml_model = self.ui.mlModelCombo.currentIndex()
-        settings.use_ml = ml_model > 0
-        settings.ml_model = ["none", "v1", "v2"][ml_model]
+        settings.ml_model = ml_model > 0
+        settings.ml_model_name = ["", "v1", "v2"][ml_model]
         
         return settings
     
@@ -288,13 +306,14 @@ class ProcessingScreenLogic(QObject):
         
         output_folder = self.ui.outputFolderLineEdit.text()
         if not output_folder:
-            # Папка по умолчанию
             output_folder = str(Path.home() / "Videos" / "SpeechEQ_processed")
             Path(output_folder).mkdir(parents=True, exist_ok=True)
             self.ui.outputFolderLineEdit.setText(output_folder)
         
         settings = self.get_processing_settings()
         tasks = []
+
+        current_handler = self.get_current_handler()
         
         for i, input_path in enumerate(self.selected_files):
             input_file = Path(input_path)
@@ -316,7 +335,7 @@ class ProcessingScreenLogic(QObject):
                 priority=i + 1,
                 input_path=input_path,
                 output_path=output_path,
-                handler=self.audio_handler,
+                handler=current_handler,
                 handler_settings=settings
             )
             tasks.append(task)
@@ -324,6 +343,16 @@ class ProcessingScreenLogic(QObject):
     
     def on_start_processing(self):
         """Обработчик кнопки начала обработки"""
+        if self.connection_manager and not self.connection_manager.is_local():
+            if not self.connection_manager.is_connected():
+                QMessageBox.warning(
+                    self.ui.centralwidget,
+                    "Нет подключения",
+                    "Вы выбрали удаленный режим, но нет подключения к серверу.\n"
+                    "Подключитесь на экране 'Подключение' или переключитесь в локальный режим."
+                )
+                return
+        
         tasks = self.create_tasks()
         
         if tasks:
@@ -332,9 +361,10 @@ class ProcessingScreenLogic(QObject):
                 self.processing_worker.process_tasks(tasks)
                 logger.info(f"Запущена обработка {len(tasks)} задач в рабочем потоке")
 
+            mode = "локальный" if not self.connection_manager or self.connection_manager.is_local() else "удаленный"
             QMessageBox.information(
                 self.ui.centralwidget,
                 "Обработка запущена",
-                f"Запущена обработка {len(tasks)} файлов.\n"
+                f"Запущена обработка {len(tasks)} файлов в {mode} режиме.\n"
                 f"Следите за прогрессом на экране 'Прогресс'"
             )

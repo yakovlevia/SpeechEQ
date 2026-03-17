@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package speecheq;
+
+service AudioProcessor {
+    rpc ProcessAudio (AudioRequest) returns (AudioResponse);
+}
+
+message ProcessingSettings {
+    bool noise_reduction = 1;
+    bool hum_removal = 2;
+    bool deesser = 3;
+    bool eq = 4;
+    bool normalization = 5;
+
+    float noise_reduction_level = 6;
+    float hum_frequency = 7;
+    float hum_removal_strength = 8;
+    float deesser_strength = 9;
+    string eq_profile = 10;
+    float normalization_target = 11;
+
+    bool ml_model = 12;
+    string ml_model_name = 13;
+    float ml_strength = 14;
+
+    string extra = 15;
+}
+
+message AudioRequest {
+    bytes audio_data = 1;
+    int32 sample_rate = 2;
+    ProcessingSettings settings = 3;
+    string request_id = 4;
+    string client_version = 5;
+}
+
+message AudioResponse {
+    bytes processed_audio = 1;
+    string error_message = 2;
+    bool success = 3;
+    string request_id = 4;
+}

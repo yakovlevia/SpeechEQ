@@ -209,3 +209,5 @@ __marimo__/
 *get_text.py
 *src/*.txt
 count.sh
+compile_proto.py
+test_client.py
