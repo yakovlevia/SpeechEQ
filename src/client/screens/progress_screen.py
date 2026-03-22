@@ -5,7 +5,7 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 from PySide6.QtCore import QTimer, Signal, QObject, Qt
-from PySide6.QtWidgets import QTableWidgetItem, QMessageBox
+from PySide6.QtWidgets import QTableWidgetItem, QMessageBox, QHeaderView
 from PySide6.QtGui import QDesktopServices, QColor
 import logging
 
@@ -40,6 +40,28 @@ class ProgressScreenLogic(QObject):
         self.status_timer.start(2000)
 
         self.connect_signals()
+        self.setup_table_columns()
+    
+    def setup_table_columns(self):
+        """Настройка пропорционального растяжения колонок таблицы"""
+        header = self.ui.taskTable.horizontalHeader()
+
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.Interactive)
+        header.setSectionResizeMode(1, QHeaderView.Interactive)
+        header.setSectionResizeMode(2, QHeaderView.Interactive)
+        header.setSectionResizeMode(3, QHeaderView.Interactive)
+
+        header.setMinimumSectionSize(80)
+
+        self.ui.taskTable.setColumnWidth(0, 960)
+        self.ui.taskTable.setColumnWidth(1, 240)
+        self.ui.taskTable.setColumnWidth(2, 160)
+        self.ui.taskTable.setColumnWidth(3, 240)
+
+        self.ui.taskTable.setAlternatingRowColors(True)
+        header.setSectionsMovable(False)
+        header.setStretchLastSection(True)
     
     def connect_signals(self):
         """Подключение сигналов кнопок"""
@@ -49,8 +71,7 @@ class ProgressScreenLogic(QObject):
         self.ui.clearFinishedBtn.clicked.connect(self.on_clear_finished)
         self.ui.openLogBtn.clicked.connect(self.on_open_log)
         
-        # Скрываем кнопку глобальной паузы
-        self.ui.pauseTasksBtn.hide() # TODO: Удалить
+        self.ui.pauseTasksBtn.hide()
         
         self.ui.taskTable.itemDoubleClicked.connect(self.on_task_double_clicked)
         self.ui.taskTable.itemSelectionChanged.connect(self.on_selection_changed)
@@ -70,6 +91,8 @@ class ProgressScreenLogic(QObject):
                     'processed_segments': 0
                 }
                 logger.info(f"Задача добавлена в таблицу: {Path(task.input_path).name}")
+
+        self.ui.taskTable.resizeRowsToContents()
     
     def add_task_to_table(self, task):
         """Добавление задачи в таблицу"""
@@ -159,22 +182,22 @@ class ProgressScreenLogic(QObject):
             status_item.setTextAlignment(Qt.AlignCenter)
 
             if display_status == 'готово':
-                status_item.setForeground(QColor(0, 150, 0))  # зелёный
+                status_item.setForeground(QColor(0, 150, 0))
             elif display_status == 'ошибка':
-                status_item.setForeground(QColor(200, 0, 0))  # красный
+                status_item.setForeground(QColor(200, 0, 0))
             elif display_status == 'отменено':
-                status_item.setForeground(QColor(150, 150, 150))  # серый
+                status_item.setForeground(QColor(150, 150, 150))
             elif display_status == 'обработка':
-                status_item.setForeground(QColor(0, 0, 200))  # синий
+                status_item.setForeground(QColor(0, 0, 200))
             elif display_status == 'приостановлено':
-                status_item.setForeground(QColor(255, 140, 0))  # оранжевый
+                status_item.setForeground(QColor(255, 140, 0))
             else:
-                status_item.setForeground(QColor(100, 100, 100))  # серый
+                status_item.setForeground(QColor(100, 100, 100))
             
             self.ui.taskTable.setItem(row, 3, status_item)
             
             if task_data['task'].total_segments > 0:
-                duration_sec = task_data['task'].total_segments * 30  # TODO: считать умнее
+                duration_sec = task_data['task'].total_segments * 30
                 minutes = duration_sec // 60
                 seconds = duration_sec % 60
                 duration_str = f"{minutes:02d}:{seconds:02d}"
@@ -188,6 +211,8 @@ class ProgressScreenLogic(QObject):
                           f"{task_data['total_segments']} сегментов "
                           f"({task_data['progress']:.1f}%)")
                 self.ui.taskTable.item(row, 0).setToolTip(tooltip)
+            
+            self.ui.taskTable.resizeRowToContents(row)
     
     def check_tasks_status(self):
         """Проверка статуса задач (опрос менеджера)"""
@@ -204,7 +229,6 @@ class ProgressScreenLogic(QObject):
                 if progress > task_data['progress']:
                     task_data['progress'] = progress
                     task_data['processed_segments'] = task.cleaned_segments
-
                     self.update_task_display(input_path)
 
             if task.is_completed() and task_data['status'] != 'готово':
@@ -217,7 +241,6 @@ class ProgressScreenLogic(QObject):
         if not self.tasks:
             return
 
-        # Текущий файл (первый в обработке, не приостановленный и не отменённый)
         current_file = None
         current_progress = 0
         total_files = len(self.tasks)
@@ -238,7 +261,6 @@ class ProgressScreenLogic(QObject):
             elif task_data['status'] in ['готово', 'ошибка']:
                 completed_files += 1
 
-        # Обновление меток
         if current_file:
             self.ui.currentFileLabel.setText(
                 f"Текущий файл: {Path(current_file).name} ({current_progress:.1f}%)"
@@ -259,7 +281,6 @@ class ProgressScreenLogic(QObject):
                 self.ui.currentFileLabel.setText(f"Активных задач: {active_files}")
                 self.ui.currentFileProgress.setValue(0)
 
-        # Общий прогресс (игнорируем отменённые задачи)
         total_active_files = total_files - cancelled_files
         if total_active_files > 0:
             total_progress = (completed_files / total_active_files * 100)
@@ -272,11 +293,9 @@ class ProgressScreenLogic(QObject):
         )
         self.ui.totalProgress.setValue(int(total_progress))
 
-        # Оценка оставшегося времени
         remaining_time = self.estimate_remaining_time()
         self.ui.timeRemainingLabel.setText(f"Оставшееся время: {remaining_time}")
 
-        # Статистика очереди
         stats = self.processing_manager.get_queue_stats()
         self.ui.taskTable.setToolTip(
             f"В очереди: {stats['queue_size']} | "
@@ -544,7 +563,7 @@ class ProgressScreenLogic(QObject):
     
     def on_task_double_clicked(self, item):
         """Обработка двойного клика по задаче"""
-        if item.column() == 0:  # клик по имени файла
+        if item.column() == 0:
             input_path = item.data(Qt.UserRole)
             task_data = self.tasks.get(input_path)
             
@@ -567,18 +586,13 @@ class ProgressScreenLogic(QObject):
             system = platform.system()
             
             if log_file.exists():
-                # Открываем файл стандартным способом для ОС
                 if system == "Windows":
-                    # На Windows используем start
                     os.startfile(str(log_file.absolute()))
-                elif system == "Darwin":  # macOS
-                    # На macOS используем open
+                elif system == "Darwin":
                     subprocess.run(["open", str(log_file.absolute())], check=False)
-                else:  # Linux и другие Unix-like
-                    # На Linux используем xdg-open (стандартный способ)
+                else:
                     subprocess.run(["xdg-open", str(log_file.absolute())], check=False)
             else:
-                # Если файла нет, открываем папку
                 if system == "Windows":
                     os.startfile(str(log_dir.absolute()))
                 elif system == "Darwin":

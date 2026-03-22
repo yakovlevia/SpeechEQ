@@ -3,8 +3,8 @@
 """
 import asyncio
 import logging
-from PySide6.QtCore import QSettings, QThread
-from PySide6.QtWidgets import QMainWindow, QMessageBox
+from PySide6.QtCore import QSettings, QThread, QSize
+from PySide6.QtWidgets import QMainWindow, QMessageBox, QHeaderView, QSizePolicy
 
 from client.ui.ui_mainwindow import Ui_MainWindow
 
@@ -30,6 +30,13 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
         self.setWindowTitle("SpeechEQ v1.0")
         
+        # Минимальный размер окна
+        self.min_width = 1600
+        self.min_height = 1200
+        self.setMinimumSize(QSize(self.min_width, self.min_height))
+        self.resize(QSize(1600, 1200))
+        self.setMaximumSize(QSize(16777215, 16777215))
+        
         self.connection_manager = GRPCConnectionManager()
         self.connection_manager.set_local_handler(audio_handler)
     
@@ -46,7 +53,9 @@ class MainWindow(QMainWindow):
         self.setup_navigation()
         self.connect_signals()
         self.restore_paused_tasks()
-        
+        self.setup_table_columns()
+        self.setup_title_alignment()
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         logger.info("Главное окно инициализировано")
 
     def init_screen_logic(self):
@@ -104,6 +113,25 @@ class MainWindow(QMainWindow):
         self.processing_screen.set_processing_worker(worker)
         logger.info("Рабочий поток подключен к главному окну")
 
+    def setup_table_columns(self):
+        """Настройка растяжения колонок таблицы на экране прогресса"""
+        header = self.ui.taskTable.horizontalHeader()
+        header.setStretchLastSection(True)
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.Stretch)
+
+        header.setMinimumSectionSize(80)
+        self.ui.taskTable.setAlternatingRowColors(True)
+        header.setSectionsMovable(False)
+        self.ui.taskTable.horizontalHeader().setStretchLastSection(False)
+    
+    def setup_title_alignment(self):
+        """Настройка выравнивания заголовка на экране прогресса"""
+        self.ui.titleLeftSpacer.changeSize(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.ui.titleRightSpacer.changeSize(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
     def restore_paused_tasks(self):
         """Восстановление состояния приостановленных задач"""
         settings = QSettings("SpeechEQ", "Session")
@@ -132,7 +160,6 @@ class MainWindow(QMainWindow):
             status = "готово" if success else "ошибка"
             self.progress_screen.update_task_status(path, status)
             
-            # Показываем уведомление об ошибке
             if not success and message != "Отменено пользователем":
                 self.progress_screen.show_error(f"Ошибка: {message}")
 
@@ -209,6 +236,43 @@ class MainWindow(QMainWindow):
             loop.run_until_complete(cancel())
         finally:
             loop.close()
+
+    def resizeEvent(self, event):
+        """Обработка изменения размера окна - запрещаем уменьшение меньше минимального"""
+        new_width = event.size().width()
+        new_height = event.size().height()
+
+        if new_width < self.min_width or new_height < self.min_height:
+            correct_width = max(new_width, self.min_width)
+            correct_height = max(new_height, self.min_height)
+
+            if correct_width != new_width or correct_height != new_height:
+                self.blockSignals(True)
+                self.resize(correct_width, correct_height)
+                self.blockSignals(False)
+                return
+
+        super().resizeEvent(event)
+
+        if hasattr(self, 'ui') and hasattr(self.ui, 'taskTable'):
+            self.update_table_columns_size()
+    
+    def update_table_columns_size(self):
+        """Обновление размеров колонок при изменении размера окна"""
+        if self.width() < self.min_width:
+            return
+        
+        total_width = self.ui.taskTable.width()
+
+        file_width = max(500, int(total_width * 0.60))
+        duration_width = max(120, int(total_width * 0.15))
+        format_width = max(100, int(total_width * 0.10))
+        status_width = max(140, int(total_width * 0.15))
+
+        self.ui.taskTable.setColumnWidth(0, file_width)
+        self.ui.taskTable.setColumnWidth(1, duration_width)
+        self.ui.taskTable.setColumnWidth(2, format_width)
+        self.ui.taskTable.setColumnWidth(3, status_width)
 
     def closeEvent(self, event):
         """Обработка закрытия окна"""
