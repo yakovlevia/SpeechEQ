@@ -27,7 +27,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1100, 780)
+        MainWindow.resize(1300, 850)
         MainWindow.setMinimumSize(QSize(1000, 700))
         MainWindow.setStyleSheet(u"\n"
 "    /* \u0413\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u044b\u0435 \u0441\u0442\u0438\u043b\u0438 */\n"
@@ -191,12 +191,28 @@ class Ui_MainWindow(object):
 "        font-size: 12px;\n"
 "    }\n"
 "    \n"
+"    /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f QProgressBar \u0432\u043d\u0443\u0442\u0440\u0438 \u0442\u0430\u0431\u043b\u0438\u0446\u044b */\n"
+"    QProgressBar {\n"
+"        border: 1px solid #cbd5e1;\n"
+"        background-color: #f1f5f9;\n"
+"        border-radius: 4px;\n"
+"        text-align: center;\n"
+"        color: #1f2d3d;\n"
+"        height: 20px;\n"
+"        font-size: 11px;\n"
+"    }\n"
+"    \n"
+"    QProgressBar::chunk {\n"
+"        backgr"
+                        "ound-color: #3b82f6;\n"
+"        border-radius: 3px;\n"
+"    }\n"
+"    \n"
 "    /* \u0421\u043f\u0435\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0441\u0442\u0438\u043b\u0438 \u0434\u043b\u044f QComboBox \u0441 \u043f\u0440\u0430\u0432\u0438\u043b\u044c\u043d\u044b\u043c \u043f\u043e\u0432\u0435\u0434\u0435\u043d\u0438\u0435\u043c \u0432\u044b\u043f\u0430\u0434\u0430\u044e\u0449\u0435\u0433\u043e \u0441\u043f\u0438\u0441\u043a\u0430 */\n"
 "    QComboBox {\n"
 "        border: 1px solid #cbd5e1;\n"
 "        border-radius: 6px;\n"
-"   "
-                        "     padding: 8px 10px;\n"
+"        padding: 8px 10px;\n"
 "        background-color: #ffffff;\n"
 "        color: #1f2d3d;\n"
 "        font-size: 12px;\n"
@@ -216,7 +232,8 @@ class Ui_MainWindow(object):
 "        border: none;\n"
 "        width: 24px;\n"
 "        background: transparent;\n"
-"    }\n"
+"  "
+                        "  }\n"
 "    \n"
 "    QComboBox::down-arrow {\n"
 "        image: none;\n"
@@ -230,8 +247,7 @@ class Ui_MainWindow(object):
 "        border-top-color: #3b82f6;\n"
 "    }\n"
 "    \n"
-"    /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f \u0432\u044b\u043f\u0430\u0434\u0430\u044e\u0449\u0435\u0433\u043e \u0441\u043f\u0438\u0441\u043a\u0430 QComboBox - \u0447\u0435"
-                        "\u0440\u043d\u044b\u0439 \u0442\u0435\u043a\u0441\u0442 */\n"
+"    /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f \u0432\u044b\u043f\u0430\u0434\u0430\u044e\u0449\u0435\u0433\u043e \u0441\u043f\u0438\u0441\u043a\u0430 QComboBox - \u0447\u0435\u0440\u043d\u044b\u0439 \u0442\u0435\u043a\u0441\u0442 */\n"
 "    QComboBox QAbstractItemView {\n"
 "        border: 1px solid #cbd5e1;\n"
 "        border-radius: 6px;\n"
@@ -245,7 +261,8 @@ class Ui_MainWindow(object):
 "    \n"
 "    QComboBox QAbstractItemView::item {\n"
 "        padding: 8px 12px;\n"
-"        min-height: 24px;\n"
+"        mi"
+                        "n-height: 24px;\n"
 "        background-color: #ffffff;\n"
 "        color: #1f2d3d;\n"
 "    }\n"
@@ -263,8 +280,7 @@ class Ui_MainWindow(object):
 "    QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QListWidget:focus, QTableWidget:focus {\n"
 "        border-color: #3b82f6;\n"
 "        outline: none;\n"
-"    "
-                        "}\n"
+"    }\n"
 "    \n"
 "    /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f QSpinBox \u0441 \u043a\u043d\u043e\u043f\u043a\u0430\u043c\u0438 \u0432\u0432\u0435\u0440\u0445/\u0432\u043d\u0438\u0437 */\n"
 "    QSpinBox {\n"
@@ -277,7 +293,8 @@ class Ui_MainWindow(object):
 "        subcontrol-position: top right;\n"
 "        width: 20px;\n"
 "        height: 18px;\n"
-"        border-left: 1px solid #cbd5e1;\n"
+"        border-le"
+                        "ft: 1px solid #cbd5e1;\n"
 "        border-bottom: 1px solid #cbd5e1;\n"
 "        border-radius: 0px;\n"
 "        background-color: #f8fafc;\n"
@@ -295,8 +312,7 @@ class Ui_MainWindow(object):
 "        border-left: 1px solid #cbd5e1;\n"
 "        border-top: 1px solid #cbd5e1;\n"
 "        border-radius: 0px;\n"
-""
-                        "        background-color: #f8fafc;\n"
+"        background-color: #f8fafc;\n"
 "    }\n"
 "    \n"
 "    QSpinBox::down-button:hover {\n"
@@ -315,7 +331,8 @@ class Ui_MainWindow(object):
 "        width: 16px;\n"
 "        height: 16px;\n"
 "        margin: -5px 0;\n"
-"        border-radius: 8px;\n"
+"     "
+                        "   border-radius: 8px;\n"
 "        border: 1px solid #3b82f6;\n"
 "    }\n"
 "    \n"
@@ -335,8 +352,7 @@ class Ui_MainWindow(object):
 "        text-align: center;\n"
 "        color: #1f2d3d;\n"
 "        height: 24px;\n"
-"        font-size: 12px"
-                        ";\n"
+"        font-size: 12px;\n"
 "    }\n"
 "    \n"
 "    QProgressBar::chunk {\n"
@@ -355,7 +371,8 @@ class Ui_MainWindow(object):
 "        width: 18px;\n"
 "        height: 18px;\n"
 "        border-radius: 4px;\n"
-"        border: 1.5px solid #cbd5e1;\n"
+"        border: 1.5px so"
+                        "lid #cbd5e1;\n"
 "        background-color: #ffffff;\n"
 "    }\n"
 "    \n"
@@ -377,8 +394,7 @@ class Ui_MainWindow(object):
 "        border-color: #e2e8f0;\n"
 "    }\n"
 "    \n"
-" "
-                        "   /* \u041d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c */\n"
+"    /* \u041d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c */\n"
 "    #navWidget {\n"
 "        background-color: #ffffff;\n"
 "        border-top: 1px solid #e2e8f0;\n"
@@ -390,7 +406,8 @@ class Ui_MainWindow(object):
 "        border: 1.5px solid transparent;\n"
 "        padding: 14px 24px;\n"
 "        font-weight: 600;\n"
-"        font-size: 14px;\n"
+""
+                        "        font-size: 14px;\n"
 "        color: #475569;\n"
 "    }\n"
 "    \n"
@@ -661,7 +678,7 @@ class Ui_MainWindow(object):
         self.gridLayout_3 = QGridLayout(self.processingGroupBox)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setHorizontalSpacing(25)
-        self.gridLayout_3.setVerticalSpacing(15)
+        self.gridLayout_3.setVerticalSpacing(12)
         self.gridLayout_3.setContentsMargins(25, 25, 25, 25)
         self.dspMethodsLabel = QLabel(self.processingGroupBox)
         self.dspMethodsLabel.setObjectName(u"dspMethodsLabel")
@@ -781,13 +798,13 @@ class Ui_MainWindow(object):
         self.sourcesGroupBox.setFont(font1)
         self.verticalLayout_6 = QVBoxLayout(self.sourcesGroupBox)
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
-        self.verticalLayout_6.setContentsMargins(25, 20, 25, 20)
+        self.verticalLayout_6.setContentsMargins(25, 15, 25, 15)
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
         self.selectFilesBtn = QPushButton(self.sourcesGroupBox)
         self.selectFilesBtn.setObjectName(u"selectFilesBtn")
         self.selectFilesBtn.setFont(font2)
-        self.selectFilesBtn.setMinimumSize(QSize(0, 44))
+        self.selectFilesBtn.setMinimumSize(QSize(0, 40))
 
         self.horizontalLayout_3.addWidget(self.selectFilesBtn)
 
@@ -798,7 +815,7 @@ class Ui_MainWindow(object):
         self.selectFolderBtn = QPushButton(self.sourcesGroupBox)
         self.selectFolderBtn.setObjectName(u"selectFolderBtn")
         self.selectFolderBtn.setFont(font2)
-        self.selectFolderBtn.setMinimumSize(QSize(0, 44))
+        self.selectFolderBtn.setMinimumSize(QSize(0, 40))
 
         self.horizontalLayout_3.addWidget(self.selectFolderBtn)
 
@@ -808,7 +825,7 @@ class Ui_MainWindow(object):
         self.fileListWidget = QListWidget(self.sourcesGroupBox)
         self.fileListWidget.setObjectName(u"fileListWidget")
         self.fileListWidget.setFont(font2)
-        self.fileListWidget.setMinimumSize(QSize(0, 130))
+        self.fileListWidget.setMinimumSize(QSize(0, 100))
 
         self.verticalLayout_6.addWidget(self.fileListWidget)
 
@@ -823,14 +840,14 @@ class Ui_MainWindow(object):
         self.outputFolderLineEdit = QLineEdit(self.sourcesGroupBox)
         self.outputFolderLineEdit.setObjectName(u"outputFolderLineEdit")
         self.outputFolderLineEdit.setFont(font2)
-        self.outputFolderLineEdit.setMinimumSize(QSize(0, 40))
+        self.outputFolderLineEdit.setMinimumSize(QSize(0, 38))
 
         self.horizontalLayout_4.addWidget(self.outputFolderLineEdit)
 
         self.browseOutputBtn = QPushButton(self.sourcesGroupBox)
         self.browseOutputBtn.setObjectName(u"browseOutputBtn")
         self.browseOutputBtn.setFont(font2)
-        self.browseOutputBtn.setMinimumSize(QSize(90, 40))
+        self.browseOutputBtn.setMinimumSize(QSize(90, 38))
 
         self.horizontalLayout_4.addWidget(self.browseOutputBtn)
 
@@ -846,7 +863,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addWidget(self.sourcesGroupBox)
 
-        self.verticalSpacer_process_mid3 = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_process_mid3 = QSpacerItem(20, 15, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_5.addItem(self.verticalSpacer_process_mid3)
 
@@ -862,7 +879,7 @@ class Ui_MainWindow(object):
         font3.setPointSize(14)
         font3.setBold(True)
         self.startProcessingBtn.setFont(font3)
-        self.startProcessingBtn.setMinimumSize(QSize(240, 56))
+        self.startProcessingBtn.setMinimumSize(QSize(240, 52))
 
         self.horizontalLayout_5.addWidget(self.startProcessingBtn)
 
@@ -873,7 +890,7 @@ class Ui_MainWindow(object):
         self.clearQueueBtn = QPushButton(self.processingScreen)
         self.clearQueueBtn.setObjectName(u"clearQueueBtn")
         self.clearQueueBtn.setFont(font3)
-        self.clearQueueBtn.setMinimumSize(QSize(240, 56))
+        self.clearQueueBtn.setMinimumSize(QSize(240, 52))
 
         self.horizontalLayout_5.addWidget(self.clearQueueBtn)
 
@@ -890,7 +907,7 @@ class Ui_MainWindow(object):
 
         self.verticalLayout_5.addWidget(self.formatsLabel)
 
-        self.verticalSpacer_process_bottom = QSpacerItem(20, 15, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_process_bottom = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_5.addItem(self.verticalSpacer_process_bottom)
 
@@ -938,8 +955,8 @@ class Ui_MainWindow(object):
         self.verticalLayout_7.addItem(self.verticalSpacer_progress_mid1)
 
         self.taskTable = QTableWidget(self.progressScreen)
-        if (self.taskTable.columnCount() < 4):
-            self.taskTable.setColumnCount(4)
+        if (self.taskTable.columnCount() < 5):
+            self.taskTable.setColumnCount(5)
         __qtablewidgetitem = QTableWidgetItem()
         self.taskTable.setHorizontalHeaderItem(0, __qtablewidgetitem)
         __qtablewidgetitem1 = QTableWidgetItem()
@@ -948,6 +965,8 @@ class Ui_MainWindow(object):
         self.taskTable.setHorizontalHeaderItem(2, __qtablewidgetitem2)
         __qtablewidgetitem3 = QTableWidgetItem()
         self.taskTable.setHorizontalHeaderItem(3, __qtablewidgetitem3)
+        __qtablewidgetitem4 = QTableWidgetItem()
+        self.taskTable.setHorizontalHeaderItem(4, __qtablewidgetitem4)
         self.taskTable.setObjectName(u"taskTable")
         self.taskTable.setMinimumSize(QSize(0, 200))
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -955,7 +974,7 @@ class Ui_MainWindow(object):
         sizePolicy1.setVerticalStretch(1)
         sizePolicy1.setHeightForWidth(self.taskTable.sizePolicy().hasHeightForWidth())
         self.taskTable.setSizePolicy(sizePolicy1)
-        self.taskTable.setFont(font2)
+        self.taskTable.setFont(font1)
         self.taskTable.setAlternatingRowColors(True)
         self.taskTable.setSelectionBehavior(QAbstractItemView.SelectRows)
 
@@ -968,40 +987,61 @@ class Ui_MainWindow(object):
         self.progressGroupBox = QGroupBox(self.progressScreen)
         self.progressGroupBox.setObjectName(u"progressGroupBox")
         self.progressGroupBox.setFont(font1)
-        self.verticalLayout_8 = QVBoxLayout(self.progressGroupBox)
-        self.verticalLayout_8.setObjectName(u"verticalLayout_8")
-        self.verticalLayout_8.setContentsMargins(20, 15, 20, 15)
-        self.currentFileLabel = QLabel(self.progressGroupBox)
-        self.currentFileLabel.setObjectName(u"currentFileLabel")
-        self.currentFileLabel.setFont(font2)
+        self.gridLayout_progress = QGridLayout(self.progressGroupBox)
+        self.gridLayout_progress.setObjectName(u"gridLayout_progress")
+        self.gridLayout_progress.setHorizontalSpacing(20)
+        self.gridLayout_progress.setVerticalSpacing(10)
+        self.gridLayout_progress.setContentsMargins(20, 15, 20, 15)
+        self.filesProgressLabel = QLabel(self.progressGroupBox)
+        self.filesProgressLabel.setObjectName(u"filesProgressLabel")
+        self.filesProgressLabel.setFont(font2)
 
-        self.verticalLayout_8.addWidget(self.currentFileLabel)
+        self.gridLayout_progress.addWidget(self.filesProgressLabel, 0, 0, 1, 1)
 
-        self.currentFileProgress = QProgressBar(self.progressGroupBox)
-        self.currentFileProgress.setObjectName(u"currentFileProgress")
-        self.currentFileProgress.setFont(font2)
-        self.currentFileProgress.setValue(0)
+        self.filesProgress = QProgressBar(self.progressGroupBox)
+        self.filesProgress.setObjectName(u"filesProgress")
+        self.filesProgress.setFont(font1)
+        self.filesProgress.setValue(0)
 
-        self.verticalLayout_8.addWidget(self.currentFileProgress)
+        self.gridLayout_progress.addWidget(self.filesProgress, 0, 1, 1, 1)
 
-        self.totalProgressLabel = QLabel(self.progressGroupBox)
-        self.totalProgressLabel.setObjectName(u"totalProgressLabel")
-        self.totalProgressLabel.setFont(font2)
+        self.totalSegmentsLabel = QLabel(self.progressGroupBox)
+        self.totalSegmentsLabel.setObjectName(u"totalSegmentsLabel")
+        self.totalSegmentsLabel.setFont(font2)
 
-        self.verticalLayout_8.addWidget(self.totalProgressLabel)
+        self.gridLayout_progress.addWidget(self.totalSegmentsLabel, 1, 0, 1, 1)
 
-        self.totalProgress = QProgressBar(self.progressGroupBox)
-        self.totalProgress.setObjectName(u"totalProgress")
-        self.totalProgress.setFont(font2)
-        self.totalProgress.setValue(0)
+        self.totalSegmentsProgress = QProgressBar(self.progressGroupBox)
+        self.totalSegmentsProgress.setObjectName(u"totalSegmentsProgress")
+        self.totalSegmentsProgress.setFont(font1)
+        self.totalSegmentsProgress.setValue(0)
 
-        self.verticalLayout_8.addWidget(self.totalProgress)
+        self.gridLayout_progress.addWidget(self.totalSegmentsProgress, 1, 1, 1, 1)
 
         self.timeRemainingLabel = QLabel(self.progressGroupBox)
         self.timeRemainingLabel.setObjectName(u"timeRemainingLabel")
         self.timeRemainingLabel.setFont(font2)
 
-        self.verticalLayout_8.addWidget(self.timeRemainingLabel)
+        self.gridLayout_progress.addWidget(self.timeRemainingLabel, 2, 0, 1, 1)
+
+        self.timeRemainingValueLabel = QLabel(self.progressGroupBox)
+        self.timeRemainingValueLabel.setObjectName(u"timeRemainingValueLabel")
+        self.timeRemainingValueLabel.setFont(font2)
+
+        self.gridLayout_progress.addWidget(self.timeRemainingValueLabel, 2, 1, 1, 1)
+
+        self.statsLabel = QLabel(self.progressGroupBox)
+        self.statsLabel.setObjectName(u"statsLabel")
+        self.statsLabel.setFont(font2)
+
+        self.gridLayout_progress.addWidget(self.statsLabel, 3, 0, 1, 1)
+
+        self.statsValueLabel = QLabel(self.progressGroupBox)
+        self.statsValueLabel.setObjectName(u"statsValueLabel")
+        self.statsValueLabel.setFont(font1)
+        self.statsValueLabel.setStyleSheet(u"color: #475569;")
+
+        self.gridLayout_progress.addWidget(self.statsValueLabel, 3, 1, 1, 1)
 
 
         self.verticalLayout_7.addWidget(self.progressGroupBox)
@@ -1204,17 +1244,22 @@ class Ui_MainWindow(object):
         self.progressTitleLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:22pt; font-weight:700; color:#1e293b;\">\u041e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438</span></p></body></html>", None))
         self.openLogBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u043e\u0433", None))
         ___qtablewidgetitem = self.taskTable.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b (\u0432\u0445\u043e\u0434\u043d\u043e\u0439)", None));
         ___qtablewidgetitem1 = self.taskTable.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0445\u043e\u0434\u043d\u043e\u0439 \u0444\u0430\u0439\u043b", None));
         ___qtablewidgetitem2 = self.taskTable.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"\u0424\u043e\u0440\u043c\u0430\u0442", None));
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 (\u0441\u0435\u0433\u043c\u0435\u043d\u0442\u044b)", None));
         ___qtablewidgetitem3 = self.taskTable.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"\u0421\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435", None));
-        self.progressGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441", None))
-        self.currentFileLabel.setText(QCoreApplication.translate("MainWindow", u"\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0444\u0430\u0439\u043b:", None))
-        self.totalProgressLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0449\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441:", None))
-        self.timeRemainingLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0432\u0448\u0435\u0435\u0441\u044f \u0432\u0440\u0435\u043c\u044f: --", None))
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c", None));
+        ___qtablewidgetitem4 = self.taskTable.horizontalHeaderItem(4)
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441", None));
+        self.progressGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0449\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441", None))
+        self.filesProgressLabel.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043f\u043e \u0444\u0430\u0439\u043b\u0430\u043c:", None))
+        self.totalSegmentsLabel.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043f\u043e \u0441\u0435\u0433\u043c\u0435\u043d\u0442\u0430\u043c:", None))
+        self.timeRemainingLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0441\u0442\u0430\u0432\u0448\u0435\u0435\u0441\u044f \u0432\u0440\u0435\u043c\u044f:", None))
+        self.timeRemainingValueLabel.setText(QCoreApplication.translate("MainWindow", u"--", None))
+        self.statsLabel.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430:", None))
+        self.statsValueLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d\u043e: 0 / 0 \u0444\u0430\u0439\u043b\u043e\u0432, \u0441\u0435\u0433\u043c\u0435\u043d\u0442\u043e\u0432: 0 / 0", None))
         self.errorNotificationLabel.setText("")
         self.pauseTasksBtn.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0430\u0443\u0437\u0430 (\u0433\u043b\u043e\u0431\u0430\u043b\u044c\u043d\u0430\u044f)", None))
         self.pauseSelectedBtn.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u0438\u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0435", None))
