@@ -1,3 +1,9 @@
+"""
+Модуль для обработки аудио из видеофайлов.
+
+Содержит классы для извлечения аудио сегментов из видео,
+их предварительной обработки и чтения WAV-файлов.
+"""
 import asyncio
 import os
 import subprocess
@@ -57,16 +63,23 @@ class AudioProcessor:
     """
     
     def __init__(self, ffmpeg_path: str = "ffmpeg"):
+        """
+        Инициализирует AudioProcessor.
+
+        Args:
+            ffmpeg_path (str, optional): Путь к исполняемому файлу ffmpeg.
+                По умолчанию "ffmpeg" (должен быть в PATH).
+        """
         self.ffmpeg_path = ffmpeg_path
         self.ffmpeg_semaphore = asyncio.Semaphore(3)
     
     async def get_video_duration_fast(self, video_path: str) -> float:
         """
         Быстро получает длительность видеофайла с помощью ffprobe.
-        
+
         Args:
             video_path (str): Путь к видеофайлу.
-        
+
         Returns:
             float: Длительность видео в секундах. Возвращает 0.0 в случае ошибки.
         
@@ -98,6 +111,25 @@ class AudioProcessor:
 
         return 0.0
     
+    def _get_temp_dir(self, video_path: str) -> Path:
+        """
+        Создает и возвращает путь к временной директории для видео.
+
+        Args:
+            video_path (str): Путь к видеофайлу.
+
+        Returns:
+            Path: Путь к временной директории.
+        """
+        input_path = Path(video_path)
+        video_name = input_path.stem
+        base_dir = input_path.parent
+        
+        temp_dir = base_dir / ".audio" / video_name / "tmp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        
+        return temp_dir
+    
     async def extract_audio_segments(
         self,
         video_path: str,
@@ -110,7 +142,7 @@ class AudioProcessor:
         
         Разделяет аудио дорожку видео на перекрывающиеся сегменты
         указанной длительности для последующей обработки.
-        
+
         Args:
             video_path (str): Путь к видеофайлу.
             segment_duration (int, optional): Длительность каждого сегмента
@@ -119,10 +151,10 @@ class AudioProcessor:
                 между сегментами в секундах. По умолчанию 1.
             sample_rate (int, optional): Частота дискретизации для
                 извлеченного аудио. По умолчанию 44100.
-        
+
         Yields:
-            AudioSegment: Очередной аудио сегмент для обработки.
-        
+            AsyncGenerator[AudioSegment, None]: Очередной аудио сегмент для обработки.
+
         Raises:
             Exception: Если произошла ошибка при извлечении сегментов.
         
@@ -180,13 +212,13 @@ class AudioProcessor:
     ) -> Optional[np.ndarray]:
         """
         Извлекает один аудио сегмент из видео.
-        
+
         Args:
             video_path (str): Путь к видеофайлу.
             start_time (float): Время начала сегмента в секундах.
             duration (float): Длительность сегмента в секундах.
             sample_rate (int): Частота дискретизации аудио.
-        
+
         Returns:
             Optional[np.ndarray]: Аудио данные в формате float32 
             или None в случае ошибки.
@@ -195,9 +227,12 @@ class AudioProcessor:
             Использует временные файлы для извлечения аудио через ffmpeg.
             Автоматически очищает временные файлы после обработки.
         """
-        temp_dir = tempfile.gettempdir()
-        temp_filename = f"audio_{int(start_time)}_{int(duration)}.wav"
-        temp_path = os.path.join(temp_dir, temp_filename)
+        temp_dir = self._get_temp_dir(video_path)
+        
+        import time
+        timestamp = int(time.time() * 1000000)
+        temp_filename = f"audio_{timestamp}_{int(start_time)}_{int(duration)}.wav"
+        temp_path = temp_dir / temp_filename
         
         logger.debug(f"Создание временного файла: {temp_path}")
         
@@ -210,7 +245,7 @@ class AudioProcessor:
                 '-ar', str(sample_rate),
                 '-ac', '1',
                 '-f', 'wav',
-                '-y', temp_path
+                '-y', str(temp_path)
             ]
             logger.debug(f"Запуск команды ffmpeg: {' '.join(cmd)}")
 
@@ -229,12 +264,12 @@ class AudioProcessor:
                 logger.warning(f"Ошибка ffmpeg при извлечении аудио ({start_time:.1f}-{start_time+duration:.1f}): {error_msg}")
                 return None
             
-            if not os.path.exists(temp_path):
+            if not temp_path.exists():
                 logger.warning(f"Временный файл не создан: {temp_path}")
                 return None
 
             loop = asyncio.get_event_loop()
-            file_size = await loop.run_in_executor(None, lambda: os.path.getsize(temp_path) if os.path.exists(temp_path) else 0)
+            file_size = await loop.run_in_executor(None, lambda: temp_path.stat().st_size if temp_path.exists() else 0)
             logger.debug(f"Временный файл создан, размер: {file_size} байт")
             
             if file_size < 100:
@@ -244,7 +279,7 @@ class AudioProcessor:
             audio_data = await loop.run_in_executor(
                 None, 
                 self._read_wav_file_sync, 
-                temp_path
+                str(temp_path)
             )
             
             if audio_data is None:
@@ -262,9 +297,9 @@ class AudioProcessor:
             return None
         finally:
             try:
-                if os.path.exists(temp_path):
+                if temp_path.exists():
                     loop = asyncio.get_event_loop()
-                    await loop.run_in_executor(None, os.unlink, temp_path)
+                    await loop.run_in_executor(None, lambda: temp_path.unlink())
                     logger.debug(f"Удален временный файл: {temp_path}")
             except Exception as e:
                 logger.debug(f"Не удалось удалить временный файл {temp_path}: {str(e)}")
@@ -272,10 +307,10 @@ class AudioProcessor:
     async def _read_wav_file(self, wav_path: str) -> Optional[np.ndarray]:
         """
         Асинхронно читает WAV файл в numpy массив.
-        
+
         Args:
             wav_path (str): Путь к WAV файлу.
-        
+
         Returns:
             Optional[np.ndarray]: Аудио данные в формате float32 
             или None в случае ошибки.
@@ -290,10 +325,10 @@ class AudioProcessor:
     def _read_wav_file_sync(self, wav_path: str) -> Optional[np.ndarray]:
         """
         Синхронно читает WAV файл в numpy массив.
-        
+
         Args:
             wav_path (str): Путь к WAV файлу.
-        
+
         Returns:
             Optional[np.ndarray]: Аудио данные в формате float32 
             или None в случае ошибки.
@@ -350,15 +385,15 @@ class AudioProcessor:
     ) -> AudioSegment:
         """
         Обрабатывает аудио сегмент с помощью указанного обработчика.
-        
+
         Args:
             audio_segment (AudioSegment): Входной аудио сегмент.
             handler (AudioHandler): Обработчик аудио, реализующий метод process().
             handler_settings (ProcessingSettings): Настройки для обработчика.
-        
+
         Returns:
             AudioSegment: Обработанный аудио сегмент с обновленным task_id.
-        
+
         Raises:
             Exception: Если произошла ошибка при обработке сегмента.
         """

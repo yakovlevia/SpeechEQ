@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Логика главного экрана
 """
@@ -6,17 +5,24 @@ from PySide6.QtWidgets import QMessageBox
 
 
 class MainScreenLogic:
-    """Класс для логики главного экрана"""
-    
+    """Управляет отображением информационных диалогов на главном экране."""
+
     def __init__(self, ui, parent):
+        """
+        Инициализирует логику главного экрана.
+
+        Args:
+            ui: Объект UI главного окна
+            parent: Родительский объект
+        """
         self.ui = ui
         self.parent = parent
         self.ui.aboutProjectBtn.clicked.connect(self.show_about)
         self.ui.instructionBtn.clicked.connect(self.show_instruction)
         self.ui.licenseBtn.clicked.connect(self.show_license)
-    
+
     def show_about(self):
-        """Показать информацию о проекте"""
+        """Отображает информацию о проекте."""
         QMessageBox.about(
             self.ui.centralwidget,
             "О проекте",
@@ -31,9 +37,9 @@ class MainScreenLogic:
             "• Нейросетевое улучшение речи</p>"
             "<p>© 2024 SpeechEQ Team</p>"
         )
-    
+
     def show_instruction(self):
-        """Показать инструкцию"""
+        """Отображает инструкцию по использованию приложения."""
         QMessageBox.information(
             self.ui.centralwidget,
             "Инструкция",
@@ -47,11 +53,11 @@ class MainScreenLogic:
             "<p><b>4. Запуск обработки</b><br>"
             "Нажмите 'Начать обработку' и следите за прогрессом.</p>"
             "<p><b>5. Результаты</b><br>"
-            "Обработанные файлы сохраняются в указанную папку с суффиксом _speecheq</p>"
+            "Обработанные файлы сохраняются в указаную папку с суффиксом _speecheq</p>"
         )
-    
+
     def show_license(self):
-        """Показать лицензию"""
+        """Отображает текст лицензии MIT."""
         QMessageBox.about(
             self.ui.centralwidget,
             "Лицензия",

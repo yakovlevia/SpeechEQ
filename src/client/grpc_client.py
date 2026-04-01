@@ -1,5 +1,9 @@
 """
-gRPC клиент для связи с сервером обработки аудио
+gRPC клиент для связи с сервером обработки аудио.
+
+Предоставляет классы для удалённой обработки аудио через gRPC,
+а также менеджер для управления подключением и переключением
+между локальным и удалённым режимами.
 """
 import logging
 import numpy as np
@@ -9,6 +13,7 @@ from typing import Optional, Dict, Any
 import uuid
 import threading
 import sys
+
 root_dir = Path(__file__).parent.parent
 proto_dir = root_dir / "proto"
 if str(proto_dir) not in sys.path:
@@ -26,19 +31,31 @@ logger = logging.getLogger(__name__)
 class GRPCAudioHandler(AudioHandler):
     """
     Обработчик аудио через gRPC сервер.
+    
     Использует синхронный gRPC клиент для избежания проблем с event loop.
+    Позволяет передавать аудиоданные на удалённый сервер для обработки
+    и получать обработанный результат.
+    
+    Attributes:
+        server_address (str): Адрес gRPC сервера (host:port)
+        timeout (float): Таймаут запроса в секундах
+        max_retries (int): Максимальное количество повторных попыток
+        channel (grpc.Channel): Канал gRPC
+        stub (audio_processor_pb2_grpc.AudioProcessorStub): Stub для вызова методов
+        connected (bool): Флаг подключения к серверу
+        client_version (str): Версия клиента
     """
     
     def __init__(self, host: str = "localhost", port: int = 50051, 
                  timeout: float = 30.0, max_retries: int = 3):
         """
-        Инициализация gRPC клиента.
-        
+        Инициализирует gRPC клиента.
+
         Args:
-            host: Адрес сервера
-            port: Порт сервера
-            timeout: Таймаут запроса в секундах
-            max_retries: Максимальное количество повторных попыток
+            host (str, optional): Адрес сервера. По умолчанию "localhost".
+            port (int, optional): Порт сервера. По умолчанию 50051.
+            timeout (float, optional): Таймаут запроса в секундах. По умолчанию 30.0.
+            max_retries (int, optional): Максимальное количество повторных попыток. По умолчанию 3.
         """
         super().__init__(processing_logic=None)
         
@@ -56,9 +73,9 @@ class GRPCAudioHandler(AudioHandler):
     def connect(self) -> bool:
         """
         Устанавливает синхронное соединение с сервером.
-        
+
         Returns:
-            bool: True если соединение установлено
+            bool: True если соединение установлено успешно, False в противном случае.
         """
         try:
             logger.info(f"Попытка подключения к {self.server_address}")
@@ -89,7 +106,7 @@ class GRPCAudioHandler(AudioHandler):
             return False
     
     def disconnect(self):
-        """Закрывает соединение с сервером"""
+        """Закрывает соединение с сервером."""
         if self.channel:
             self.channel.close()
             self.connected = False
@@ -98,12 +115,12 @@ class GRPCAudioHandler(AudioHandler):
     def _settings_to_proto(self, settings: ProcessingSettings) -> audio_processor_pb2.ProcessingSettings:
         """
         Конвертирует ProcessingSettings в protobuf формат.
-        
+
         Args:
-            settings: Настройки обработки
-            
+            settings (ProcessingSettings): Настройки обработки
+
         Returns:
-            audio_processor_pb2.ProcessingSettings: Настройки в protobuf формате
+            audio_processor_pb2.ProcessingSettings: Настройки в protobuf формате.
         """
         extra_json = ""
         if settings.extra:
@@ -140,15 +157,15 @@ class GRPCAudioHandler(AudioHandler):
     ) -> Optional[np.ndarray]:
         """
         Синхронная обработка аудио через gRPC.
-        
+
         Args:
-            audio: Аудио данные в формате float32
-            sample_rate: Частота дискретизации
-            settings: Настройки обработки
-            request_id: Идентификатор запроса
-            
+            audio (np.ndarray): Аудио данные в формате float32
+            sample_rate (int): Частота дискретизации
+            settings (ProcessingSettings): Настройки обработки
+            request_id (str): Уникальный идентификатор запроса
+
         Returns:
-            Optional[np.ndarray]: Обработанное аудио или None в случае ошибки
+            Optional[np.ndarray]: Обработанное аудио или None в случае ошибки.
         """
         if not self.connected or not self.stub:
             logger.error("Нет подключения к серверу")
@@ -201,7 +218,6 @@ class GRPCAudioHandler(AudioHandler):
         
         return None
     
-    # Реализация интерфейса AudioHandler
     def process(
         self,
         audio: np.ndarray,
@@ -210,14 +226,16 @@ class GRPCAudioHandler(AudioHandler):
     ) -> np.ndarray:
         """
         Синхронная обработка аудио через gRPC.
-        
+
+        Реализация интерфейса AudioHandler.
+
         Args:
-            audio: Аудио данные
-            sample_rate: Частота дискретизации
-            settings: Настройки обработки
-            
+            audio (np.ndarray): Аудио данные
+            sample_rate (int): Частота дискретизации
+            settings (ProcessingSettings): Настройки обработки
+
         Returns:
-            np.ndarray: Обработанное аудио
+            np.ndarray: Обработанное аудио. В случае ошибки возвращает исходный сигнал.
         """
         if not self.connected:
             logger.warning("Нет подключения к серверу, возвращаем исходный сигнал")
@@ -241,9 +259,9 @@ class GRPCAudioHandler(AudioHandler):
     def get_server_info(self) -> Dict[str, Any]:
         """
         Получает информацию о сервере.
-        
+
         Returns:
-            Dict[str, Any]: Информация о сервере
+            Dict[str, Any]: Словарь с информацией о подключении и версиях.
         """
         return {
             "connected": self.connected,
@@ -255,10 +273,20 @@ class GRPCAudioHandler(AudioHandler):
 class GRPCConnectionManager:
     """
     Менеджер для управления подключением к gRPC серверу.
-    Используется в UI для переключения между локальным и удаленным режимами.
+    
+    Используется в UI для переключения между локальным и удалённым режимами.
+    Обеспечивает потокобезопасное переключение обработчиков.
+    
+    Attributes:
+        current_handler (Optional[AudioHandler]): Текущий обработчик (локальный или gRPC)
+        local_mode (bool): Флаг использования локального режима
+        local_handler (Optional[AudioHandler]): Обработчик для локального режима
     """
     
     def __init__(self):
+        """
+        Инициализирует менеджер подключения.
+        """
         self.current_handler: Optional[GRPCAudioHandler] = None
         self.local_mode = True
         self.local_handler: Optional[AudioHandler] = None
@@ -266,21 +294,26 @@ class GRPCConnectionManager:
         logger.info("GRPCConnectionManager инициализирован")
     
     def set_local_handler(self, handler: AudioHandler):
-        """Устанавливает обработчик для локального режима"""
+        """
+        Устанавливает обработчик для локального режима.
+
+        Args:
+            handler (AudioHandler): Обработчик аудио для локального режима
+        """
         self.local_handler = handler
         if self.local_mode:
             self.current_handler = handler
     
     def connect_to_server(self, host: str, port: int) -> bool:
         """
-        Подключается к удаленному серверу (синхронно).
-        
+        Подключается к удалённому серверу (синхронно).
+
         Args:
-            host: Адрес сервера
-            port: Порт сервера
-            
+            host (str): Адрес сервера
+            port (int): Порт сервера
+
         Returns:
-            bool: True если подключение успешно
+            bool: True если подключение успешно, False в противном случае.
         """
         logger.info(f"GRPCConnectionManager.connect_to_server({host}, {port})")
         
@@ -309,7 +342,7 @@ class GRPCConnectionManager:
             return success
     
     def disconnect_from_server(self):
-        """Отключается от удаленного сервера"""
+        """Отключается от удалённого сервера и переключается на локальный режим."""
         logger.info("GRPCConnectionManager.disconnect_from_server")
         
         with self._lock:
@@ -324,15 +357,30 @@ class GRPCConnectionManager:
             logger.info("Отключено от сервера, переключено на локальный режим")
     
     def get_current_handler(self) -> Optional[AudioHandler]:
-        """Возвращает текущий обработчик"""
+        """
+        Возвращает текущий обработчик.
+
+        Returns:
+            Optional[AudioHandler]: Текущий обработчик (локальный или gRPC)
+        """
         return self.current_handler
     
     def is_connected(self) -> bool:
-        """Проверяет, подключен ли клиент к серверу"""
+        """
+        Проверяет, подключен ли клиент к серверу.
+
+        Returns:
+            bool: True если подключение активно, False в противном случае.
+        """
         if self.current_handler and isinstance(self.current_handler, GRPCAudioHandler):
             return self.current_handler.connected
         return False
     
     def is_local(self) -> bool:
-        """Проверяет, используется ли локальный режим"""
+        """
+        Проверяет, используется ли локальный режим.
+
+        Returns:
+            bool: True если используется локальный режим, False если удалённый.
+        """
         return self.local_mode

@@ -7,80 +7,112 @@ from PySide6.QtCore import QSettings, QThread, QSize
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QHeaderView, QSizePolicy
 
 from client.ui.ui_mainwindow import Ui_MainWindow
-
 from client.screens.main_screen import MainScreenLogic
 from client.screens.connection_screen import ConnectionScreenLogic, ConnectionWorker
 from client.screens.processing_screen import ProcessingScreenLogic
 from client.screens.progress_screen import ProgressScreenLogic
 from client.grpc_client import GRPCConnectionManager
+from client.video_queue import TaskStatus
 
 logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    """Основной класс главного окна"""
+    """Главное окно приложения, управляющее навигацией между экранами и обработкой задач."""
 
     def __init__(self, audio_handler, processing_manager, default_settings):
+        """
+        Инициализирует главное окно.
+
+        Args:
+            audio_handler: Обработчик аудио для локального режима
+            processing_manager: Менеджер обработки задач
+            default_settings: Настройки обработки по умолчанию
+        """
         super().__init__()
         self.audio_handler = audio_handler
         self.processing_manager = processing_manager
         self.default_settings = default_settings
         self.processing_worker = None
+        self.processing_thread = None
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle("SpeechEQ v1.0")
-        
-        # Минимальный размер окна
+
         self.min_width = 1600
-        self.min_height = 1200
+        self.min_height = 900
         self.setMinimumSize(QSize(self.min_width, self.min_height))
-        self.resize(QSize(1600, 1200))
+        self.resize(QSize(1600, 900))
         self.setMaximumSize(QSize(16777215, 16777215))
-        
+
         self.connection_manager = GRPCConnectionManager()
         self.connection_manager.set_local_handler(audio_handler)
-    
+
         self.connection_thread = QThread()
         self.connection_worker = ConnectionWorker(self.connection_manager)
         self.connection_worker.moveToThread(self.connection_thread)
-        
+
         self.connection_thread.started.connect(self.connection_worker.setup_asyncio)
         self.connection_thread.finished.connect(self.connection_worker.deleteLater)
-
         self.connection_thread.start()
-        
+
         self.init_screen_logic()
         self.setup_navigation()
         self.connect_signals()
-        self.restore_paused_tasks()
         self.setup_table_columns()
         self.setup_title_alignment()
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
         logger.info("Главное окно инициализировано")
 
+    def set_processing_worker(self, worker, thread):
+        """
+        Устанавливает рабочий поток обработки.
+
+        Args:
+            worker: Объект ProcessingWorker
+            thread: Поток QThread для выполнения worker
+        """
+        self.processing_worker = worker
+        self.processing_thread = thread
+
+        self.processing_worker.task_added.connect(self.progress_screen.add_task)
+        self.processing_worker.task_status_changed.connect(self.progress_screen.update_task_status)
+        self.processing_worker.task_progress.connect(self.progress_screen.update_task_progress)
+        self.processing_worker.task_duration.connect(self.progress_screen.update_task_duration)
+        self.processing_worker.task_finished.connect(self.on_task_finished)
+        self.processing_worker.task_started.connect(self.on_task_started)
+        self.processing_worker.progress_updated.connect(self.on_progress_updated)
+        self.processing_worker.queue_stats_updated.connect(self.on_queue_stats_updated)
+
+        if hasattr(self, 'processing_screen'):
+            self.processing_screen.set_processing_worker(worker)
+
+        logger.info("MainWindow: установлен рабочий поток")
+
     def init_screen_logic(self):
-        """Инициализация логики экранов"""
+        """Инициализирует логику всех экранов приложения."""
         self.main_screen = MainScreenLogic(self.ui, self)
         self.connection_screen = ConnectionScreenLogic(
-            self.ui, 
+            self.ui,
             self,
             self.connection_worker
         )
         self.processing_screen = ProcessingScreenLogic(
-            self.ui, 
+            self.ui,
             self,
             audio_handler=self.audio_handler,
             default_settings=self.default_settings,
             connection_manager=self.connection_manager
         )
         self.progress_screen = ProgressScreenLogic(
-            self.ui, 
+            self.ui,
             self,
             processing_manager=self.processing_manager
         )
 
     def setup_navigation(self):
-        """Настройка навигации по кнопкам"""
+        """Настраивает переключение между экранами по кнопкам навигации."""
         self.ui.mainScreenBtn.clicked.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.mainScreen)
         )
@@ -95,26 +127,18 @@ class MainWindow(QMainWindow):
         )
 
     def connect_signals(self):
-        """Подключение сигналов между экранами и менеджером"""
+        """Подключает сигналы между экранами и менеджером обработки."""
         self.processing_screen.tasks_added.connect(self.on_tasks_added)
         self.processing_screen.processing_started.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.progressScreen)
         )
-        self.progress_screen.cancel_selected_requested.connect(self.on_cancel_selected)
         self.progress_screen.pause_selected_requested.connect(self.on_pause_selected)
         self.progress_screen.resume_selected_requested.connect(self.on_resume_selected)
-
-    def set_processing_worker(self, worker):
-        """Установка рабочего потока обработки"""
-        self.processing_worker = worker
-        self.processing_worker.progress_updated.connect(self.on_progress_updated)
-        self.processing_worker.task_finished.connect(self.on_task_finished)
-        self.processing_worker.task_started.connect(self.on_task_started)
-        self.processing_screen.set_processing_worker(worker)
-        logger.info("Рабочий поток подключен к главному окну")
+        self.progress_screen.cancel_selected_requested.connect(self.on_cancel_selected)
+        self.progress_screen.clear_finished_requested.connect(self.on_clear_finished)
 
     def setup_table_columns(self):
-        """Настройка растяжения колонок таблицы на экране прогресса"""
+        """Настраивает растяжение колонок таблицы задач на экране прогресса."""
         header = self.ui.taskTable.horizontalHeader()
         header.setStretchLastSection(True)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -122,123 +146,126 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(2, QHeaderView.Stretch)
         header.setSectionResizeMode(3, QHeaderView.Stretch)
 
-        header.setMinimumSectionSize(80)
-        self.ui.taskTable.setAlternatingRowColors(True)
-        header.setSectionsMovable(False)
-        self.ui.taskTable.horizontalHeader().setStretchLastSection(False)
-    
     def setup_title_alignment(self):
-        """Настройка выравнивания заголовка на экране прогресса"""
+        """Настраивает выравнивание заголовка на экране прогресса."""
         self.ui.titleLeftSpacer.changeSize(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.ui.titleRightSpacer.changeSize(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-    def restore_paused_tasks(self):
-        """Восстановление состояния приостановленных задач"""
-        settings = QSettings("SpeechEQ", "Session")
-        paused_tasks = settings.value("paused_tasks", [])
-
-        if paused_tasks:
-            logger.info(f"Восстановление {len(paused_tasks)} приостановленных задач")
-            for task_path in paused_tasks:
-                self.processing_manager.pause_task(task_path)
-                self.progress_screen.paused_tasks.add(task_path)
-
-    def on_progress_updated(self, path: str, current: int, total: int):
-        """
-        Обновление прогресса из рабочего потока.
-        """
-        if hasattr(self, 'progress_screen'):
-            self.progress_screen.update_task_status(
-                path, "обработка", total, current
-            )
-
-    def on_task_finished(self, path: str, success: bool, message: str):
-        """
-        Обработка завершения задачи из рабочего потока.
-        """
-        if hasattr(self, 'progress_screen'):
-            status = "готово" if success else "ошибка"
-            self.progress_screen.update_task_status(path, status)
-            
-            if not success and message != "Отменено пользователем":
-                self.progress_screen.show_error(f"Ошибка: {message}")
-
-    def on_task_started(self, path: str):
-        """
-        Обработка начала задачи из рабочего потока.
-        """
-        if hasattr(self, 'progress_screen'):
-            self.progress_screen.update_task_status(path, "обработка")
-
     def on_tasks_added(self, tasks):
-        """Обработка добавления задач"""
+        """
+        Обрабатывает добавление новых задач.
+
+        Args:
+            tasks: Список задач AudioCleanupTask
+        """
         logger.info(f"Добавлено {len(tasks)} задач в очередь")
+        if hasattr(self, 'processing_worker'):
+            self.processing_worker.add_tasks(tasks)
 
-        for task in tasks:
-            self.processing_manager.add_video_task(task)
-            logger.debug(f"Добавлена задача: {task.input_path}")
-        
-        self.progress_screen.add_tasks(tasks)
+    def on_task_started(self, task_id: str):
+        """
+        Обрабатывает начало выполнения задачи.
 
-    def on_pause_selected(self, task_paths):
-        """Приостановка выбранных задач"""
-        logger.info(f"Приостановка {len(task_paths)} задач")
+        Args:
+            task_id: Идентификатор задачи
+        """
+        logger.info(f"Задача {task_id} начата")
 
-        async def pause_tasks():
-            for path in task_paths:
-                success = self.processing_manager.pause_task(path)
-                if success:
-                    logger.info(f"Задача приостановлена: {path}")
+    def on_progress_updated(self, task_id: str, current: int, total: int):
+        """
+        Обрабатывает обновление прогресса задачи.
 
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        Args:
+            task_id: Идентификатор задачи
+            current: Количество обработанных сегментов
+            total: Общее количество сегментов
+        """
+        pass
+
+    def on_task_finished(self, task_id: str, success: bool, message: str):
+        """
+        Обрабатывает завершение задачи.
+
+        Args:
+            task_id: Идентификатор задачи
+            success: Флаг успешного завершения
+            message: Сообщение о результате
+        """
+        logger.info(f"Задача {task_id} завершена: success={success}, message={message}")
+
+        if not success and message != "Отменено пользователем":
+            self.progress_screen.show_error(f"Ошибка: {message}")
+
+    def on_queue_stats_updated(self, stats: dict):
+        """
+        Обрабатывает обновление статистики очереди.
+
+        Args:
+            stats: Словарь со статистикой очереди
+        """
+        pass
+
+    def on_pause_selected(self, task_ids: list):
+        """
+        Приостанавливает выбранные задачи.
+
+        Args:
+            task_ids: Список идентификаторов задач
+        """
+        logger.info(f"Приостановка {len(task_ids)} задач")
+
+        if hasattr(self, 'processing_worker'):
+            for task_id in task_ids:
+                self.processing_worker.pause_task(task_id)
+
+    def on_resume_selected(self, task_ids: list):
+        """
+        Возобновляет выбранные задачи.
+
+        Args:
+            task_ids: Список идентификаторов задач
+        """
+        logger.info(f"Возобновление {len(task_ids)} задач")
+
+        if hasattr(self, 'processing_worker'):
+            for task_id in task_ids:
+                self.processing_worker.resume_task(task_id)
+
+    def on_cancel_selected(self, task_ids: list):
+        """
+        Отменяет выбранные задачи.
+
+        Args:
+            task_ids: Список идентификаторов задач
+        """
+        logger.info(f"Отмена {len(task_ids)} задач")
+
+        if hasattr(self, 'processing_worker'):
+            self.processing_worker.cancel_tasks(task_ids)
+
+    def on_clear_finished(self):
+        """Очищает завершённые задачи из менеджера и UI."""
+        logger.info("Очистка завершённых задач")
+
+        async def clear_tasks():
+            return await self.processing_manager.clear_finished_tasks()
+
         try:
-            loop.run_until_complete(pause_tasks())
-        finally:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            removed_count = loop.run_until_complete(clear_tasks())
             loop.close()
-    
-    def on_resume_selected(self, task_paths):
-        """Возобновление выбранных задач"""
-        logger.info(f"Возобновление {len(task_paths)} задач")
-        
-        async def resume_tasks():
-            for path in task_paths:
-                task_data = self.progress_screen.tasks.get(path)
-                if task_data and task_data['status'] == 'отменено':
-                    logger.warning(f"Попытка возобновить отменённую задачу: {path}")
-                    continue
-                    
-                success = self.processing_manager.resume_task(path)
-                if success:
-                    logger.info(f"Задача возобновлена: {path}")
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(resume_tasks())
-        finally:
-            loop.close()
-    
-    def on_cancel_selected(self, task_paths):
-        """Отмена выбранных задач"""
-        logger.info(f"Отмена {len(task_paths)} задач")
-        
-        async def cancel():
-            for path in task_paths:
-                self.processing_manager.cancel_task(path)
-                await self.processing_manager.video_processor.cancel_processing_by_path(path)
-                self.progress_screen.update_task_status(path, "отменено")
-                logger.info(f"Задача отменена: {path}")
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(cancel())
-        finally:
-            loop.close()
+            logger.info(f"Из менеджера удалено {removed_count} задач")
+        except Exception as e:
+            logger.error(f"Ошибка при очистке задач из менеджера: {e}")
 
     def resizeEvent(self, event):
-        """Обработка изменения размера окна - запрещаем уменьшение меньше минимального"""
+        """
+        Обрабатывает изменение размера окна с минимальными ограничениями.
+
+        Args:
+            event: Событие изменения размера
+        """
         new_width = event.size().width()
         new_height = event.size().height()
 
@@ -254,44 +281,50 @@ class MainWindow(QMainWindow):
 
         super().resizeEvent(event)
 
-        if hasattr(self, 'ui') and hasattr(self.ui, 'taskTable'):
-            self.update_table_columns_size()
-    
-    def update_table_columns_size(self):
-        """Обновление размеров колонок при изменении размера окна"""
-        if self.width() < self.min_width:
-            return
-        
-        total_width = self.ui.taskTable.width()
-
-        file_width = max(500, int(total_width * 0.60))
-        duration_width = max(120, int(total_width * 0.15))
-        format_width = max(100, int(total_width * 0.10))
-        status_width = max(140, int(total_width * 0.15))
-
-        self.ui.taskTable.setColumnWidth(0, file_width)
-        self.ui.taskTable.setColumnWidth(1, duration_width)
-        self.ui.taskTable.setColumnWidth(2, format_width)
-        self.ui.taskTable.setColumnWidth(3, status_width)
-
     def closeEvent(self, event):
-        """Обработка закрытия окна"""
+        """
+        Обрабатывает закрытие окна с сохранением состояния.
+
+        Args:
+            event: Событие закрытия
+        """
         logger.info("Закрытие главного окна")
 
-        paused_tasks = self.processing_manager.get_paused_tasks()
-        if paused_tasks:
-            settings = QSettings("SpeechEQ", "Session")
-            settings.setValue("paused_tasks", paused_tasks)
-            logger.info(f"Сохранено {len(paused_tasks)} приостановленных задач")
+        async def save_paused_tasks():
+            tasks = await self.processing_manager.get_all_tasks()
+            paused_task_ids = [t.task_id for t in tasks if t.get_status_sync() == TaskStatus.PAUSED]
+            if paused_task_ids:
+                settings = QSettings("SpeechEQ", "Session")
+                settings.setValue("paused_tasks", paused_task_ids)
+                logger.info(f"Сохранено {len(paused_task_ids)} приостановленных задач")
 
-        stats = self.processing_manager.get_queue_stats()
-        if stats["active_tasks"] > 0 or stats["queue_size"] > 0:
+        async def get_stats():
+            return await self.processing_manager.get_queue_stats()
+
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(save_paused_tasks())
+            loop.close()
+        except Exception as e:
+            logger.error(f"Ошибка при сохранении приостановленных задач: {e}")
+
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            stats = loop.run_until_complete(get_stats())
+            loop.close()
+        except Exception as e:
+            logger.error(f"Ошибка при получении статистики: {e}")
+            stats = {}
+
+        if stats.get("active_tasks", 0) > 0 or stats.get("queue_size", 0) > 0:
             reply = QMessageBox.question(
                 self,
                 "Подтверждение",
-                f"Активных задач: {stats['active_tasks']}\n"
-                f"Задач в очереди: {stats['queue_size']}\n"
-                f"Приостановлено: {stats['paused_tasks']}\n\n"
+                f"Активных задач: {stats.get('active_tasks', 0)}\n"
+                f"Задач в очереди: {stats.get('queue_size', 0)}\n"
+                f"Приостановлено: {stats.get('paused_tasks', 0)}\n\n"
                 "Завершить работу приложения? Все активные задачи будут остановлены.",
                 QMessageBox.Yes | QMessageBox.No
             )
@@ -301,30 +334,24 @@ class MainWindow(QMainWindow):
                 return
 
         if hasattr(self, 'connection_manager') and not self.connection_manager.is_local():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
                 loop.run_until_complete(self.connection_manager.disconnect_from_server())
+                loop.close()
             except Exception as e:
                 logger.error(f"Ошибка при отключении от сервера: {e}")
-            finally:
-                loop.close()
-
-        if hasattr(self, 'processing_worker'):
-            logger.info("Остановка рабочего потока обработки...")
-            self.processing_worker.stop()
 
         if hasattr(self, 'connection_worker'):
             logger.info("Остановка потока подключения...")
             self.connection_worker.stop()
-        
+
         if hasattr(self, 'connection_thread') and self.connection_thread.isRunning():
-            logger.info("Ожидание завершения потока подключения...")
             self.connection_thread.quit()
             if not self.connection_thread.wait(3000):
                 logger.warning("Поток подключения не завершился, принудительное завершение")
                 self.connection_thread.terminate()
                 self.connection_thread.wait()
-        
+
         logger.info("Завершение работы приложения")
         event.accept()
