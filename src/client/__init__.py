@@ -1,4 +1,11 @@
-from .video_queue import AudioCleanupTask, PriorityTaskQueue
+"""
+Пакет client - клиентская часть приложения SpeechEQ.
+
+Содержит основные компоненты для обработки видео и аудио, управления очередью задач,
+а также UI-логику и экраны приложения.
+"""
+
+from .video_queue import AudioCleanupTask, PriorityTaskQueue, TaskStatus
 from .audio_processor import AudioSegment, AudioProcessor
 from .video_processor import VideoProcessor
 from .processing_manager import ProcessingManager
@@ -15,6 +22,7 @@ from .screens.progress_screen import ProgressScreenLogic
 __all__ = [
     'AudioCleanupTask',
     'PriorityTaskQueue',
+    'TaskStatus',
     'AudioSegment',
     'AudioProcessor',
     'VideoProcessor',
