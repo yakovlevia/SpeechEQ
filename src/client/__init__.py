@@ -10,7 +10,7 @@ from .audio_processor import AudioSegment, AudioProcessor
 from .video_processor import VideoProcessor
 from .processing_manager import ProcessingManager
 from processing.core.settings import ProcessingSettings
-from .config import FFMPEG_CONFIG, QUEUE_CONFIG, AUDIO_CONFIG, PATHS
+from .config import FFMPEG_CONFIG, QUEUE_CONFIG, AUDIO_CONFIG
 from .workers.processing_worker import ProcessingWorker
 
 from .core.main_window import MainWindow
@@ -30,7 +30,6 @@ __all__ = [
     'FFMPEG_CONFIG',
     'QUEUE_CONFIG',
     'AUDIO_CONFIG',
-    'PATHS',
     "ProcessingSettings",
     "MainWindow",
     "MainScreenLogic",

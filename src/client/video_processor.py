@@ -279,7 +279,7 @@ class VideoProcessor:
                 task=task,
                 audio_dir=clean_audio_dir,
                 segment_duration=AUDIO_CONFIG["segment_duration"],
-                overlap_duration=AUDIO_CONFIG["merge_overlap"]
+                overlap_duration=AUDIO_CONFIG["overlap_duration"],
             )
 
             # ------------------------------------------------------------------
@@ -334,31 +334,21 @@ class VideoProcessor:
         self,
         task: AudioCleanupTask,
         audio_dir: Path,
-        segment_duration: float = AUDIO_CONFIG["segment_duration"],
-        overlap_duration: float = AUDIO_CONFIG["merge_overlap"],
+        segment_duration: float = None,
+        overlap_duration: float = None,
     ) -> Path:
         """
         Собирает отдельные аудио сегменты в единый файл с усреднением перекрытий.
-
-        Args:
-            task (AudioCleanupTask): Задача обработки видео.
-            audio_dir (Path): Папка с обработанными сегментами.
-            segment_duration (float, optional): Длительность сегмента в секундах.
-                По умолчанию из AUDIO_CONFIG.
-            overlap_duration (float, optional): Перекрытие при сборке в секундах.
-                По умолчанию из AUDIO_CONFIG.
-
-        Returns:
-            Path: Путь к собранному WAV файлу.
-
-        Raises:
-            FileNotFoundError: Если список сегментов не найден.
-            RuntimeError: Если нет сегментов для сборки.
-            ValueError: Если частота дискретизации сегментов не совпадает.
-
-        Note:
-            Удаляет временные файлы сегментов после сборки для экономии места.
+        
+        Сегменты извлекались с перекрытием overlap_duration, теперь при сборке
+        мы усредняем перекрывающиеся области и обрезаем до исходной длительности.
         """
+        # Берем параметры из конфига, если не переданы явно
+        if segment_duration is None:
+            segment_duration = AUDIO_CONFIG["segment_duration"]
+        if overlap_duration is None:
+            overlap_duration = AUDIO_CONFIG["overlap_duration"]
+        
         segments_list_path = audio_dir / "segments_list.txt"
         if not segments_list_path.exists():
             raise FileNotFoundError(f"Список сегментов не найден: {segments_list_path}")
@@ -372,50 +362,98 @@ class VideoProcessor:
         if not segment_files:
             raise RuntimeError("Нет сегментов для сборки аудио")
 
+        # Сортируем по индексу сегмента
         segment_files.sort(key=lambda x: int(Path(x).stem.split("_")[-1]))
-        assembled_list = []
 
-        sr, audio_data = wavfile.read(audio_dir / segment_files[0])
-        audio_data = audio_data.astype(np.float32) / 32767.0
-        assembled_list.append(audio_data)
+        logger.info(f"Начало сборки аудио: {len(segment_files)} сегментов, "
+                    f"overlap={overlap_duration}s")
 
+        # Читаем первый сегмент
+        sr, first_audio = wavfile.read(audio_dir / segment_files[0])
+        first_audio = first_audio.astype(np.float32) / 32767.0
+        
+        # Вычисляем размер перекрытия в сэмплах
         overlap_samples = int(overlap_duration * sr)
-
-        for seg_file in segment_files[1:]:
+        
+        # Начинаем с первого сегмента
+        result_audio = first_audio.copy()
+        
+        logger.info(f"Первый сегмент: {len(result_audio)} сэмплов, sample_rate={sr}")
+        
+        # Собираем остальные сегменты
+        for i, seg_file in enumerate(segment_files[1:], start=1):
             sr_seg, seg_data = wavfile.read(audio_dir / seg_file)
             seg_data = seg_data.astype(np.float32) / 32767.0
-
+            
             if sr_seg != sr:
-                raise ValueError(f"Несовпадающий sample_rate: {sr_seg} != {sr}")
-
-            if overlap_samples > 0:
-                prev = assembled_list[-1]
-                actual_overlap = min(overlap_samples, len(prev), len(seg_data))
-                if actual_overlap > 0:
-                    prev[-actual_overlap:] = (prev[-actual_overlap:] + seg_data[:actual_overlap]) / 2
-                    seg_data = seg_data[actual_overlap:]
-
-            assembled_list.append(seg_data)
-
-        assembled_audio = np.concatenate(assembled_list)
-        assembled_audio_int16 = np.clip(assembled_audio * 32767, -32768, 32767).astype(np.int16)
-
+                raise ValueError(f"Несовпадающий sample_rate в сегменте {i}: {sr_seg} != {sr}")
+            
+            if overlap_samples > 0 and len(result_audio) >= overlap_samples and len(seg_data) > overlap_samples:
+                # Усредняем перекрывающуюся область
+                # Берем последние overlap_samples из result_audio и первые overlap_samples из seg_data
+                overlap_end_idx = min(overlap_samples, len(seg_data))
+                
+                # Применяем плавное затухание/нарастание (crossfade)
+                fade_out = np.linspace(1.0, 0.0, overlap_end_idx)
+                fade_in = np.linspace(0.0, 1.0, overlap_end_idx)
+                
+                # Перекрываем с затуханием
+                result_audio[-overlap_end_idx:] = (
+                    result_audio[-overlap_end_idx:] * fade_out + 
+                    seg_data[:overlap_end_idx] * fade_in
+                )
+                
+                # Добавляем оставшуюся часть сегмента (после перекрытия)
+                if len(seg_data) > overlap_end_idx:
+                    result_audio = np.concatenate([result_audio, seg_data[overlap_end_idx:]])
+            else:
+                # Если перекрытия нет или его недостаточно, просто склеиваем
+                result_audio = np.concatenate([result_audio, seg_data])
+        
+        total_samples = len(result_audio)
+        logger.info(f"После сборки всех сегментов: {total_samples} сэмплов ({total_samples/sr:.2f}s)")
+        
+        # Обрезаем до ожидаемой длительности, если она известна
+        if task.duration > 0:
+            expected_samples = int(task.duration * sr)
+            
+            if total_samples > expected_samples:
+                logger.info(f"Обрезаем аудио с {total_samples} ({total_samples/sr:.2f}s) "
+                        f"до {expected_samples} ({expected_samples/sr:.2f}s) сэмплов")
+                result_audio = result_audio[:expected_samples]
+            elif total_samples < expected_samples:
+                # Дополняем тишиной, если не хватает (редкий случай)
+                shortage = expected_samples - total_samples
+                logger.warning(f"Аудио короче ожидаемого на {shortage} сэмплов "
+                            f"({shortage/sr:.2f}s), дополняем тишиной")
+                padding = np.zeros(shortage, dtype=np.float32)
+                result_audio = np.concatenate([result_audio, padding])
+        
+        # Конвертируем обратно в int16
+        result_audio_int16 = np.clip(result_audio * 32767, -32768, 32767).astype(np.int16)
+        
         output_wav_path = audio_dir.parent / f"{Path(task.input_path).stem}_assembled.wav"
-
+        
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
             None,
-            lambda: wavfile.write(output_wav_path, sr, assembled_audio_int16)
+            lambda: wavfile.write(output_wav_path, sr, result_audio_int16)
         )
-
+        
+        # Удаляем временные файлы сегментов
         for seg_file in segment_files:
             try:
                 (audio_dir / seg_file).unlink()
             except Exception as e:
                 logger.warning(f"Не удалось удалить сегмент {seg_file}: {e}")
-
-        logger.info(f"Собранное аудио сохранено: {output_wav_path}")
+        
+        final_duration = len(result_audio_int16) / sr
+        logger.info(f"Собранное аудио сохранено: {output_wav_path}, "
+                    f"длительность={final_duration:.2f}с, "
+                    f"ожидалось={task.duration:.2f}с")
+        
         return output_wav_path
+
 
     async def merge_audio_with_video(
         self,
@@ -494,7 +532,7 @@ class VideoProcessor:
         audio_data = processed_segment.audio_data
 
         if audio_data.dtype != np.int16:
-            audio_data = (audio_data * 32767).astype(np.int16)
+            audio_data = np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
 
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
