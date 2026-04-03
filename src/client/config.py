@@ -6,7 +6,6 @@
 """
 
 import os
-from pathlib import Path
 
 # Конфигурация путей к ffmpeg
 FFMPEG_CONFIG = {
@@ -22,16 +21,7 @@ QUEUE_CONFIG = {
 
 # Конфигурация аудио обработки
 AUDIO_CONFIG = {
-    "segment_duration": 30,   # сегмент 30 секунд
-    "overlap_duration": 1,    # перекрытие при нарезке 1 секунда
-    "merge_overlap": 0.5,     # перекрытие при сборке аудио
-    "sample_rate": 44100,     
-}
-
-# Пути к папкам
-PATHS = {
-    "hidden_video_dir": ".video_no_audio",  # Имя скрытой папки для видео без аудио
-    "temp_dir": Path("/tmp/video_processor"),  # Временная папка
-    "audio_segments_dir": "audio_segments",  # Папка для сегментов аудио
-    "processed_audio_dir": "processed_audio",  # Папка для обработанного аудио
+    "segment_duration": 30,   # длительность сегмента в секундах
+    "overlap_duration": 1,    # перекрытие между сегментами в секундах (используется и при нарезке, и при сборке)
+    "sample_rate": 16000,     # частота дискретизации 16 кГц
 }
