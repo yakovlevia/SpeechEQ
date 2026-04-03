@@ -1,5 +1,5 @@
 """
-Логика экрана обработки и выбора источников
+Экран выбора файлов и настроек обработки.
 """
 import os
 import logging
@@ -11,27 +11,20 @@ from PySide6.QtGui import QDragEnterEvent, QDropEvent
 from client.video_queue import AudioCleanupTask
 from processing.core.settings import ProcessingSettings
 import asyncio
+import numpy as np
+from client.audio_processor import AudioProcessor
+from client.config import AUDIO_CONFIG
 
 logger = logging.getLogger(__name__)
 
 
 class ProcessingScreenLogic(QObject):
-    """Логика экрана выбора файлов и настроек обработки."""
+    """Логика экрана выбора файлов и настроек."""
 
     tasks_added = Signal(list)
     processing_started = Signal()
 
     def __init__(self, ui, parent, audio_handler, default_settings, connection_manager=None):
-        """
-        Инициализирует логику экрана обработки.
-
-        Args:
-            ui: Объект UI главного окна
-            parent: Родительский объект Qt
-            audio_handler: Обработчик аудио для локального режима
-            default_settings: Настройки по умолчанию
-            connection_manager: Менеджер подключения для удалённого режима
-        """
         super().__init__(parent)
         self.ui = ui
         self.parent = parent
@@ -46,28 +39,16 @@ class ProcessingScreenLogic(QObject):
         self.setup_drag_drop()
 
     def set_processing_worker(self, worker):
-        """
-        Устанавливает рабочий поток обработки.
-
-        Args:
-            worker: Объект ProcessingWorker
-        """
         self.processing_worker = worker
-        logger.info("ProcessingScreenLogic: установлен рабочий поток")
+        logger.info("Установлен рабочий поток обработки")
 
     def get_current_handler(self):
-        """
-        Возвращает текущий обработчик в зависимости от режима работы.
-
-        Returns:
-            Обработчик аудио (локальный или удалённый)
-        """
+        """Возвращает текущий обработчик (локальный или удалённый)."""
         if self.connection_manager:
             return self.connection_manager.get_current_handler()
         return self.audio_handler
 
     def connect_signals(self):
-        """Подключает сигналы элементов управления."""
         self.ui.noiseReductionCheck.toggled.connect(self.on_setting_changed)
         self.ui.noiseReductionSlider.valueChanged.connect(self.on_setting_changed)
         self.ui.humRemovalCheck.toggled.connect(self.on_setting_changed)
@@ -89,128 +70,106 @@ class ProcessingScreenLogic(QObject):
         self.ui.fileListWidget.itemDoubleClicked.connect(self.on_item_double_clicked)
 
     def setup_drag_drop(self):
-        """Настраивает поддержку drag & drop для списка файлов."""
         self.ui.fileListWidget.setAcceptDrops(True)
         self.ui.fileListWidget.dragEnterEvent = self.drag_enter_event
         self.ui.fileListWidget.dropEvent = self.drop_event
 
     def drag_enter_event(self, event: QDragEnterEvent):
-        """Обрабатывает событие входа перетаскивания."""
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
     def drop_event(self, event: QDropEvent):
-        """Обрабатывает событие сброса файлов."""
         files = []
         for url in event.mimeData().urls():
             file_path = url.toLocalFile()
             if self.is_supported_format(file_path):
                 files.append(file_path)
-
         self.add_files(files)
 
     def is_supported_format(self, file_path: str) -> bool:
-        """
-        Проверяет, поддерживается ли формат файла.
-
-        Args:
-            file_path: Путь к файлу
-
-        Returns:
-            True, если формат поддерживается
-        """
-        supported_formats = ['.mp4', '.mov', '.mkv', '.avi', '.flv', '.wmv']
-        ext = Path(file_path).suffix.lower()
-        return ext in supported_formats
+        supported = ['.mp4', '.mov', '.mkv', '.avi', '.flv', '.wmv']
+        return Path(file_path).suffix.lower() in supported
 
     def load_settings(self):
-        """Загружает сохранённые настройки из QSettings."""
-        saved_settings = QSettings("SpeechEQ", "Processing")
+        saved = QSettings("SpeechEQ", "Processing")
 
         self.ui.noiseReductionCheck.setChecked(
-            saved_settings.value("noise_reduction", self.default_settings.noise_reduction, type=bool)
+            saved.value("noise_reduction", self.default_settings.noise_reduction, type=bool)
         )
         self.ui.noiseReductionSlider.setValue(
-            saved_settings.value("noise_reduction_level", int(self.default_settings.noise_reduction_level * 10), type=int)
+            saved.value("noise_reduction_level", int(self.default_settings.noise_reduction_level * 10), type=int)
         )
         self.ui.humRemovalCheck.setChecked(
-            saved_settings.value("hum_removal", self.default_settings.hum_removal, type=bool)
+            saved.value("hum_removal", self.default_settings.hum_removal, type=bool)
         )
         self.ui.humFrequencyCombo.setCurrentIndex(
-            0 if saved_settings.value("hum_frequency", 50, type=int) == 50 else 1
+            0 if saved.value("hum_frequency", 50, type=int) == 50 else 1
         )
         self.ui.deEsserCheck.setChecked(
-            saved_settings.value("deesser", self.default_settings.deesser, type=bool)
+            saved.value("deesser", self.default_settings.deesser, type=bool)
         )
         self.ui.deEsserSlider.setValue(
-            saved_settings.value("deesser_strength", int(self.default_settings.deesser_strength * 10), type=int)
+            saved.value("deesser_strength", int(self.default_settings.deesser_strength * 10), type=int)
         )
         self.ui.eqCheck.setChecked(
-            saved_settings.value("eq", self.default_settings.eq, type=bool)
+            saved.value("eq", self.default_settings.eq, type=bool)
         )
         self.ui.mlModelCombo.setCurrentIndex(
-            saved_settings.value("ml_model", 0, type=int)
+            saved.value("ml_model", 0, type=int)
         )
         self.ui.normalizationCheck.setChecked(
-            saved_settings.value("normalization", self.default_settings.normalization, type=bool)
+            saved.value("normalization", self.default_settings.normalization, type=bool)
         )
         self.ui.lufsSpinBox.setValue(
-            saved_settings.value("lufs_target", int(self.default_settings.normalization_target), type=int)
+            saved.value("lufs_target", int(self.default_settings.normalization_target), type=int)
         )
 
-        output_folder = saved_settings.value("output_folder", "")
+        output_folder = saved.value("output_folder", "")
         if output_folder:
             self.ui.outputFolderLineEdit.setText(output_folder)
 
         self.ui.overwriteCheck.setChecked(
-            saved_settings.value("overwrite", False, type=bool)
+            saved.value("overwrite", False, type=bool)
         )
 
     def save_settings(self):
-        """Сохраняет текущие настройки в QSettings."""
-        saved_settings = QSettings("SpeechEQ", "Processing")
-        saved_settings.setValue("noise_reduction", self.ui.noiseReductionCheck.isChecked())
-        saved_settings.setValue("noise_reduction_level", self.ui.noiseReductionSlider.value())
-        saved_settings.setValue("hum_removal", self.ui.humRemovalCheck.isChecked())
-        saved_settings.setValue("hum_frequency", 50 if self.ui.humFrequencyCombo.currentIndex() == 0 else 60)
-        saved_settings.setValue("deesser", self.ui.deEsserCheck.isChecked())
-        saved_settings.setValue("deesser_strength", self.ui.deEsserSlider.value())
-        saved_settings.setValue("eq", self.ui.eqCheck.isChecked())
-        saved_settings.setValue("ml_model", self.ui.mlModelCombo.currentIndex())
-        saved_settings.setValue("normalization", self.ui.normalizationCheck.isChecked())
-        saved_settings.setValue("lufs_target", self.ui.lufsSpinBox.value())
-        saved_settings.setValue("output_folder", self.ui.outputFolderLineEdit.text())
-        saved_settings.setValue("overwrite", self.ui.overwriteCheck.isChecked())
+        saved = QSettings("SpeechEQ", "Processing")
+        saved.setValue("noise_reduction", self.ui.noiseReductionCheck.isChecked())
+        saved.setValue("noise_reduction_level", self.ui.noiseReductionSlider.value())
+        saved.setValue("hum_removal", self.ui.humRemovalCheck.isChecked())
+        saved.setValue("hum_frequency", 50 if self.ui.humFrequencyCombo.currentIndex() == 0 else 60)
+        saved.setValue("deesser", self.ui.deEsserCheck.isChecked())
+        saved.setValue("deesser_strength", self.ui.deEsserSlider.value())
+        saved.setValue("eq", self.ui.eqCheck.isChecked())
+        saved.setValue("ml_model", self.ui.mlModelCombo.currentIndex())
+        saved.setValue("normalization", self.ui.normalizationCheck.isChecked())
+        saved.setValue("lufs_target", self.ui.lufsSpinBox.value())
+        saved.setValue("output_folder", self.ui.outputFolderLineEdit.text())
+        saved.setValue("overwrite", self.ui.overwriteCheck.isChecked())
 
     def on_setting_changed(self):
-        """Обрабатывает изменение любой настройки."""
         self.save_settings()
 
     def on_select_files(self):
-        """Обрабатывает выбор файлов через диалог."""
         files, _ = QFileDialog.getOpenFileNames(
             self.ui.centralwidget,
             "Выберите видеофайлы",
             "",
             "Видео файлы (*.mp4 *.mov *.mkv *.avi *.flv *.wmv);;Все файлы (*.*)"
         )
-
         if files:
             self.add_files(files)
 
     def on_select_folder(self):
-        """Обрабатывает выбор папки и добавляет все видеофайлы из неё."""
         folder = QFileDialog.getExistingDirectory(
             self.ui.centralwidget,
             "Выберите папку с видео"
         )
-
         if folder:
             files = []
             for file in Path(folder).iterdir():
                 if file.is_file() and self.is_supported_format(str(file)):
                     files.append(str(file))
-
             self.add_files(files)
             QMessageBox.information(
                 self.ui.centralwidget,
@@ -219,12 +178,6 @@ class ProcessingScreenLogic(QObject):
             )
 
     def add_files(self, files: list):
-        """
-        Добавляет файлы в очередь обработки.
-
-        Args:
-            files: Список путей к файлам
-        """
         added = 0
         for file in files:
             if file not in self.selected_files:
@@ -233,8 +186,8 @@ class ProcessingScreenLogic(QObject):
                 added += 1
 
         self.ui.fileListWidget.setToolTip(f"Всего файлов: {len(self.selected_files)}")
-
         if added > 0:
+            logger.debug(f"Добавлено {added} файлов в очередь")
             QMessageBox.information(
                 self.ui.centralwidget,
                 "Файлы добавлены",
@@ -242,29 +195,20 @@ class ProcessingScreenLogic(QObject):
             )
 
     def clear_file_list(self):
-        """Очищает список выбранных файлов."""
         self.ui.fileListWidget.clear()
         self.selected_files.clear()
         logger.info("Список файлов очищен")
 
     def on_browse_output(self):
-        """Обрабатывает выбор папки для сохранения результатов."""
         folder = QFileDialog.getExistingDirectory(
             self.ui.centralwidget,
             "Выберите папку для сохранения результатов"
         )
-
         if folder:
             self.ui.outputFolderLineEdit.setText(folder)
             self.save_settings()
 
     def on_item_double_clicked(self, item):
-        """
-        Обрабатывает двойной клик по файлу в списке (удаление).
-
-        Args:
-            item: Элемент списка
-        """
         index = self.ui.fileListWidget.row(item)
         if 0 <= index < len(self.selected_files):
             reply = QMessageBox.question(
@@ -273,13 +217,11 @@ class ProcessingScreenLogic(QObject):
                 f"Удалить файл '{item.text()}' из списка?",
                 QMessageBox.Yes | QMessageBox.No
             )
-
             if reply == QMessageBox.Yes:
                 self.ui.fileListWidget.takeItem(index)
                 self.selected_files.pop(index)
 
     def on_clear_queue(self):
-        """Обрабатывает очистку всей очереди файлов."""
         if self.selected_files:
             reply = QMessageBox.question(
                 self.ui.centralwidget,
@@ -287,17 +229,10 @@ class ProcessingScreenLogic(QObject):
                 f"Очистить список из {len(self.selected_files)} файлов?",
                 QMessageBox.Yes | QMessageBox.No
             )
-
             if reply == QMessageBox.Yes:
                 self.clear_file_list()
 
     def get_processing_settings(self) -> ProcessingSettings:
-        """
-        Формирует объект настроек обработки из текущего состояния UI.
-
-        Returns:
-            ProcessingSettings с текущими настройками
-        """
         settings = ProcessingSettings()
 
         settings.noise_reduction = self.ui.noiseReductionCheck.isChecked()
@@ -323,12 +258,6 @@ class ProcessingScreenLogic(QObject):
         return settings
 
     def create_tasks(self) -> list:
-        """
-        Создаёт задачи обработки из выбранных файлов.
-
-        Returns:
-            Список объектов AudioCleanupTask
-        """
         if not self.selected_files:
             QMessageBox.warning(
                 self.ui.centralwidget,
@@ -345,10 +274,7 @@ class ProcessingScreenLogic(QObject):
 
         settings = self.get_processing_settings()
         tasks = []
-
         current_handler = self.get_current_handler()
-
-        from client.audio_processor import AudioProcessor
         audio_proc = AudioProcessor()
 
         for i, input_path in enumerate(self.selected_files):
@@ -362,15 +288,22 @@ class ProcessingScreenLogic(QObject):
                 )
                 loop.close()
             except Exception as e:
-                logger.error(f"Ошибка получения длительности для {input_path}: {e}")
+                logger.error(f"Ошибка получения длительности {input_path}: {e}")
                 duration = 0.0
+
+            total_segments = 0
+            if duration > 0:
+                seg_dur = AUDIO_CONFIG["segment_duration"]
+                overlap = AUDIO_CONFIG["overlap_duration"]
+                step = max(seg_dur - overlap, 1)
+                total_segments = max(1, int(np.ceil((duration - overlap) / step)))
+                logger.debug(f"Видео {input_file.name}: длительность {duration:.1f}s, сегментов {total_segments}")
 
             if self.ui.overwriteCheck.isChecked():
                 output_path = str(input_file)
             else:
                 output_name = f"{input_file.stem}_speecheq{input_file.suffix}"
                 output_path = str(Path(output_folder) / output_name)
-
                 counter = 1
                 while Path(output_path).exists():
                     output_name = f"{input_file.stem}_speecheq_{counter}{input_file.suffix}"
@@ -388,14 +321,14 @@ class ProcessingScreenLogic(QObject):
             if duration > 0:
                 task.duration = duration
                 task.duration_formatted = task.format_duration(duration)
-                logger.info(f"Длительность видео {input_file.name}: {task.duration_formatted}")
+            if total_segments > 0:
+                task.total_segments = total_segments
 
             tasks.append(task)
 
         return tasks
 
     def on_start_processing(self):
-        """Обрабатывает нажатие кнопки запуска обработки."""
         if self.connection_manager and not self.connection_manager.is_local():
             if not self.connection_manager.is_connected():
                 QMessageBox.warning(
@@ -407,13 +340,12 @@ class ProcessingScreenLogic(QObject):
                 return
 
         tasks = self.create_tasks()
-
         if tasks:
             self.tasks_added.emit(tasks)
             self.clear_file_list()
             self.processing_started.emit()
-
             mode = "локальный" if not self.connection_manager or self.connection_manager.is_local() else "удаленный"
+            logger.info(f"Запущена обработка {len(tasks)} файлов в {mode} режиме")
             QMessageBox.information(
                 self.ui.centralwidget,
                 "Обработка запущена",

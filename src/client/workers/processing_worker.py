@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ProcessingWorker(QObject):
     """Выполняет обработку видео задач в отдельном потоке с asyncio циклом."""
 
-    task_added = Signal(str, str, str)
+    task_added = Signal(str, str, str, int)
     task_status_changed = Signal(str, str)
     task_progress = Signal(str, int, int)
     task_duration = Signal(str, float, str)
@@ -105,12 +105,12 @@ class ProcessingWorker(QObject):
         """
         for task in tasks:
             await self.processing_manager.add_video_task(task)
-            self.task_added.emit(task.task_id, task.input_path, task.output_path)
+            self.task_added.emit(task.task_id, task.input_path, task.output_path, task.total_segments)
 
             if task.duration > 0:
                 self.task_duration.emit(task.task_id, task.duration, task.duration_formatted)
 
-            logger.info(f"Добавлена задача: {task.input_path} (ID: {task.task_id})")
+            logger.info(f"Добавлена задача: {task.input_path} (ID: {task.task_id}, сегментов: {task.total_segments})")
 
     @Slot(str)
     def pause_task(self, task_id: str):
@@ -224,7 +224,7 @@ class ProcessingWorker(QObject):
         if task_id not in self._started_emitted:
             self._started_emitted.add(task_id)
             self.task_started.emit(task_id)
-            logger.info(f"Отправлен сигнал task_started: {task_id}")
+            logger.debug(f"Отправлен сигнал task_started: {task_id}")
 
     def _emit_task_finished(self, task_id: str, success: bool, message: str):
         """
@@ -249,23 +249,27 @@ class ProcessingWorker(QObject):
                     status = task.get_status_sync()
                     current, total, percent = task.get_progress_sync()
 
-                    logger.info(f"МОНИТОР ВХОД: задача {task.task_id}, статус={status.value}, прогресс={current}/{total}")
-
+                    # Отправляем статус всегда (но логируем только изменения)
                     self.task_status_changed.emit(task.task_id, status.value)
 
-                    if status == TaskStatus.PROCESSING:
-                        self._emit_task_started(task.task_id)
-
-                        logger.info(f"МОНИТОР: задача {task.task_id} в статусе PROCESSING, отправляем прогресс")
+                    # Отправляем прогресс для PROCESSING и POST_PROCESSING
+                    if status in (TaskStatus.PROCESSING, TaskStatus.POST_PROCESSING):
+                        if status == TaskStatus.PROCESSING:
+                            self._emit_task_started(task.task_id)
 
                         if total > 0:
-                            logger.info(f"МОНИТОР: отправка сигнала прогресса для задачи {task.task_id}: {current}/{total}")
                             self.task_progress.emit(task.task_id, current, total)
                             self.progress_updated.emit(task.task_id, current, total)
-                        else:
-                            logger.warning(f"МОНИТОР: total=0 для задачи {task.task_id}, прогресс не отправлен")
+                    elif status == TaskStatus.RESUMING:
+                        self._emit_task_started(task.task_id)
+                        logger.debug(f"Задача {task.task_id} возобновляется")
                     else:
-                        logger.info(f"МОНИТОР: задача {task.task_id} в статусе {status.value}, НЕ PROCESSING")
+                        # Логируем только важные изменения статуса (не каждый цикл)
+                        if hasattr(self, '_last_status') and self._last_status.get(task.task_id) != status.value:
+                            logger.debug(f"Задача {task.task_id} в статусе {status.value}")
+                            if not hasattr(self, '_last_status'):
+                                self._last_status = {}
+                            self._last_status[task.task_id] = status.value
 
                 await asyncio.sleep(1)
             except asyncio.CancelledError:
