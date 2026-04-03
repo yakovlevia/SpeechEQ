@@ -15,13 +15,13 @@ FFMPEG_CONFIG = {
 
 # Конфигурация очередей
 QUEUE_CONFIG = {
-    "audio_queue_max_size": 500,
-    "max_concurrent_videos": 3,
+    "audio_queue_max_size": 500,      # Максимум параллельных сегментов
+    "max_concurrent_videos": 3,       # Максимум параллельных видео
 }
 
 # Конфигурация аудио обработки
 AUDIO_CONFIG = {
     "segment_duration": 30,   # длительность сегмента в секундах
-    "overlap_duration": 1,    # перекрытие между сегментами в секундах (используется и при нарезке, и при сборке)
+    "overlap_duration": 1,    # перекрытие между сегментами в секундах
     "sample_rate": 16000,     # частота дискретизации 16 кГц
 }
