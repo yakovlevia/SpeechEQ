@@ -22,12 +22,11 @@ class MainWindow(QMainWindow):
 
     def __init__(self, audio_handler, processing_manager, default_settings):
         """
-        Инициализирует главное окно.
+        Инициализация главного окна.
 
-        Args:
-            audio_handler: Обработчик аудио для локального режима
-            processing_manager: Менеджер обработки задач
-            default_settings: Настройки обработки по умолчанию
+        :param audio_handler: Обработчик аудио для локальной обработки
+        :param processing_manager: Менеджер очереди задач обработки
+        :param default_settings: Настройки по умолчанию для обработки
         """
         super().__init__()
         self.audio_handler = audio_handler
@@ -67,11 +66,12 @@ class MainWindow(QMainWindow):
 
     def set_processing_worker(self, worker, thread):
         """
-        Устанавливает рабочий поток обработки.
+        Установка рабочего потока обработки задач.
 
-        Args:
-            worker: Объект ProcessingWorker
-            thread: Поток QThread для выполнения worker
+        Подключает сигналы воркера к слотам экрана прогресса.
+
+        :param worker: Экземпляр ProcessingWorker для обработки задач
+        :param thread: QThread, в котором выполняется воркер
         """
         self.processing_worker = worker
         self.processing_thread = thread
@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
         logger.info("MainWindow: установлен рабочий поток")
 
     def init_screen_logic(self):
-        """Инициализирует логику всех экранов приложения."""
+        """Инициализация логики всех экранов приложения."""
         self.main_screen = MainScreenLogic(self.ui, self)
         self.connection_screen = ConnectionScreenLogic(
             self.ui,
@@ -112,7 +112,7 @@ class MainWindow(QMainWindow):
         )
 
     def setup_navigation(self):
-        """Настраивает переключение между экранами по кнопкам навигации."""
+        """Настройка навигации между экранами через кнопки бокового меню."""
         self.ui.mainScreenBtn.clicked.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.mainScreen)
         )
@@ -127,7 +127,7 @@ class MainWindow(QMainWindow):
         )
 
     def connect_signals(self):
-        """Подключает сигналы между экранами и менеджером обработки."""
+        """Подключение сигналов между компонентами приложения."""
         self.processing_screen.tasks_added.connect(self.on_tasks_added)
         self.processing_screen.processing_started.connect(
             lambda: self.ui.stackedWidget.setCurrentWidget(self.ui.progressScreen)
@@ -138,7 +138,7 @@ class MainWindow(QMainWindow):
         self.progress_screen.clear_finished_requested.connect(self.on_clear_finished)
 
     def setup_table_columns(self):
-        """Настраивает растяжение колонок таблицы задач на экране прогресса."""
+        """Настройка заголовков и режимов растягивания колонок таблицы задач."""
         header = self.ui.taskTable.horizontalHeader()
         header.setStretchLastSection(True)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -147,16 +147,15 @@ class MainWindow(QMainWindow):
         header.setSectionResizeMode(3, QHeaderView.Stretch)
 
     def setup_title_alignment(self):
-        """Настраивает выравнивание заголовка на экране прогресса."""
+        """Настройка выравнивания заголовка окна через спейсеры."""
         self.ui.titleLeftSpacer.changeSize(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.ui.titleRightSpacer.changeSize(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
     def on_tasks_added(self, tasks):
         """
-        Обрабатывает добавление новых задач.
+        Обработчик добавления новых задач в очередь.
 
-        Args:
-            tasks: Список задач AudioCleanupTask
+        :param tasks: Список добавленных задач
         """
         logger.info(f"Добавлено {len(tasks)} задач в очередь")
         if hasattr(self, 'processing_worker'):
@@ -164,32 +163,29 @@ class MainWindow(QMainWindow):
 
     def on_task_started(self, task_id: str):
         """
-        Обрабатывает начало выполнения задачи.
+        Обработчик начала выполнения задачи.
 
-        Args:
-            task_id: Идентификатор задачи
+        :param task_id: Идентификатор начатой задачи
         """
         logger.info(f"Задача {task_id} начата")
 
     def on_progress_updated(self, task_id: str, current: int, total: int):
         """
-        Обрабатывает обновление прогресса задачи.
+        Обработчик обновления прогресса задачи.
 
-        Args:
-            task_id: Идентификатор задачи
-            current: Количество обработанных сегментов
-            total: Общее количество сегментов
+        :param task_id: Идентификатор задачи
+        :param current: Текущее значение прогресса
+        :param total: Общее значение для завершения
         """
         pass
 
     def on_task_finished(self, task_id: str, success: bool, message: str):
         """
-        Обрабатывает завершение задачи.
+        Обработчик завершения задачи.
 
-        Args:
-            task_id: Идентификатор задачи
-            success: Флаг успешного завершения
-            message: Сообщение о результате
+        :param task_id: Идентификатор завершённой задачи
+        :param success: Флаг успешного завершения
+        :param message: Сообщение о результате выполнения
         """
         logger.info(f"Задача {task_id} завершена: success={success}, message={message}")
 
@@ -198,19 +194,17 @@ class MainWindow(QMainWindow):
 
     def on_queue_stats_updated(self, stats: dict):
         """
-        Обрабатывает обновление статистики очереди.
+        Обработчик обновления статистики очереди задач.
 
-        Args:
-            stats: Словарь со статистикой очереди
+        :param stats: Словарь со статистикой очереди
         """
         pass
 
     def on_pause_selected(self, task_ids: list):
         """
-        Приостанавливает выбранные задачи.
+        Обработчик приостановки выбранных задач.
 
-        Args:
-            task_ids: Список идентификаторов задач
+        :param task_ids: Список идентификаторов задач для приостановки
         """
         logger.info(f"Приостановка {len(task_ids)} задач")
 
@@ -220,10 +214,9 @@ class MainWindow(QMainWindow):
 
     def on_resume_selected(self, task_ids: list):
         """
-        Возобновляет выбранные задачи.
+        Обработчик возобновления выбранных задач.
 
-        Args:
-            task_ids: Список идентификаторов задач
+        :param task_ids: Список идентификаторов задач для возобновления
         """
         logger.info(f"Возобновление {len(task_ids)} задач")
 
@@ -233,10 +226,9 @@ class MainWindow(QMainWindow):
 
     def on_cancel_selected(self, task_ids: list):
         """
-        Отменяет выбранные задачи.
+        Обработчик отмены выбранных задач.
 
-        Args:
-            task_ids: Список идентификаторов задач
+        :param task_ids: Список идентификаторов задач для отмены
         """
         logger.info(f"Отмена {len(task_ids)} задач")
 
@@ -244,7 +236,7 @@ class MainWindow(QMainWindow):
             self.processing_worker.cancel_tasks(task_ids)
 
     def on_clear_finished(self):
-        """Очищает завершённые задачи из менеджера и UI."""
+        """Обработчик очистки завершённых задач из очереди и менеджера."""
         logger.info("Очистка завершённых задач")
 
         async def clear_tasks():
@@ -259,12 +251,15 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Ошибка при очистке задач из менеджера: {e}")
 
+        ProcessingScreenLogic.clear_used_output_paths()
+
     def resizeEvent(self, event):
         """
-        Обрабатывает изменение размера окна с минимальными ограничениями.
+        Переопределение события изменения размера окна.
 
-        Args:
-            event: Событие изменения размера
+        Обеспечивает минимальные размеры окна приложения.
+
+        :param event: Событие изменения размера
         """
         new_width = event.size().width()
         new_height = event.size().height()
@@ -283,10 +278,12 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """
-        Обрабатывает закрытие окна с сохранением состояния.
+        Переопределение события закрытия окна.
 
-        Args:
-            event: Событие закрытия
+        Сохраняет состояние приостановленных задач, корректно завершает
+        подключения и потоки перед закрытием приложения.
+
+        :param event: Событие закрытия окна
         """
         logger.info("Закрытие главного окна")
 
