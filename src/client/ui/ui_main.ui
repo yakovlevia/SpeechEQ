@@ -236,19 +236,70 @@
               background: transparent;
           }
           
+          /* Выпадающий список: только красота, без расширения по ширине */
           QComboBox QAbstractItemView {
               border: 1px solid #cbd5e1;
-              border-radius: 6px;
+              border-radius: 8px;
               background-color: #ffffff;
               selection-background-color: #3b82f6;
               selection-color: #ffffff;
+              color: #1f2d3d;
               outline: none;
-              min-width: 200px;
+              padding: 4px;
           }
           
           QComboBox QAbstractItemView::item {
-              padding: 8px 12px;
+              padding: 8px 10px;
+              min-height: 22px;
+              margin: 2px;
+              border-radius: 6px;
+              background-color: transparent;
+              color: #1f2d3d;
+          }
+          
+          QComboBox QAbstractItemView::item:hover {
+              background-color: #eff6ff;
+              color: #1e293b;
+          }
+          
+          QComboBox QAbstractItemView::item:selected {
+              background-color: #3b82f6;
+              color: #ffffff;
+          }
+          
+          QComboBox QAbstractItemView::item:selected:hover {
+              background-color: #2563eb;
+              color: #ffffff;
+          }
+          
+          /* Скроллбар внутри выпадающего списка */
+          QComboBox QScrollBar:vertical {
+              background: transparent;
+              width: 10px;
+              margin: 4px 4px 4px 0px;
+              border: none;
+          }
+          
+          QComboBox QScrollBar::handle:vertical {
+              background: #cbd5e1;
               min-height: 24px;
+              border-radius: 5px;
+          }
+          
+          QComboBox QScrollBar::handle:vertical:hover {
+              background: #94a3b8;
+          }
+          
+          QComboBox QScrollBar::add-line:vertical,
+          QComboBox QScrollBar::sub-line:vertical {
+              height: 0px;
+              border: none;
+              background: transparent;
+          }
+          
+          QComboBox QScrollBar::add-page:vertical,
+          QComboBox QScrollBar::sub-page:vertical {
+              background: transparent;
           }
           
           /* ===== СТИЛИ ДЛЯ QSpinBox / QTimeEdit / QDateTimeEdit ===== */
@@ -268,7 +319,6 @@
               outline: none;
           }
           
-          /* Оставляем родные стрелки Qt, меняем только размер зоны кнопок */
           QSpinBox::up-button, QTimeEdit::up-button, QDateTimeEdit::up-button {
               subcontrol-origin: border;
               subcontrol-position: top right;
