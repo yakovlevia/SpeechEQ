@@ -19,386 +19,352 @@
   <property name="windowTitle">
    <string>SpeechEQ v1.0</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">
-    /* Глобальные стили */
-    QMainWindow {
-        background-color: #f5f7fa;
-    }
-    
-    QLabel {
-        color: #2c3e50;
-    }
-    
-    QGroupBox {
-        font-weight: bold;
-        border: 1px solid #d0d7de;
-        border-radius: 8px;
-        margin-top: 12px;
-        padding-top: 12px;
-        background-color: #ffffff;
-    }
-    
-    QGroupBox::title {
-        subcontrol-origin: margin;
-        left: 16px;
-        padding: 0 8px 0 8px;
-        color: #1f2d3d;
-    }
-    
-    QPushButton {
-        background-color: #ffffff;
-        border: 1.5px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 8px 20px;
-        font-weight: 500;
-        font-size: 13px;
-        color: #1f2d3d;
-    }
-    
-    QPushButton:hover {
-        background-color: #f1f5f9;
-        border-color: #94a3b8;
-    }
-    
-    QPushButton:pressed {
-        background-color: #e2e8f0;
-    }
-    
-    QPushButton#startProcessingBtn, QPushButton#startLocalBtn, QPushButton#connectBtn {
-        background-color: #3b82f6;
-        border: 1.5px solid #3b82f6;
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-    }
-    
-    QPushButton#startProcessingBtn:hover, QPushButton#startLocalBtn:hover, QPushButton#connectBtn:hover {
-        background-color: #2563eb;
-        border-color: #2563eb;
-    }
-    
-    QPushButton#clearQueueBtn, QPushButton#cancelSelectedBtn {
-        background-color: #ef4444;
-        border: 1.5px solid #ef4444;
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-    }
-    
-    QPushButton#clearQueueBtn:hover, QPushButton#cancelSelectedBtn:hover {
-        background-color: #dc2626;
-        border-color: #dc2626;
-    }
-    
-    QPushButton#openLogBtn {
-        background-color: #f1f5f9;
-        border-color: #cbd5e1;
-        color: #475569;
-        font-size: 12px;
-        padding: 6px 16px;
-    }
-    
-    QPushButton#openLogBtn:hover {
-        background-color: #e2e8f0;
-        border-color: #94a3b8;
-        color: #1f2d3d;
-    }
-    
-    /* Стили для QLineEdit, QSpinBox */
-    QLineEdit, QSpinBox {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 8px 10px;
-        background-color: #ffffff;
-        selection-background-color: #3b82f6;
-        font-size: 12px;
-        color: #1f2d3d;
-    }
-    
-    /* Стили для QListWidget - черный текст */
-    QListWidget {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 8px 10px;
-        background-color: #ffffff;
-        selection-background-color: #3b82f6;
-        selection-color: #ffffff;
-        font-size: 12px;
-        color: #1f2d3d;
-    }
-    
-    QListWidget::item {
-        color: #1f2d3d;
-        padding: 5px;
-    }
-    
-    QListWidget::item:selected {
-        background-color: #3b82f6;
-        color: #ffffff;
-    }
-    
-    QListWidget::item:hover {
-        background-color: #f1f5f9;
-        color: #1f2d3d;
-    }
-    
-    /* Стили для QTableWidget - УБРАНО ГЛОБАЛЬНОЕ ПЕРЕОПРЕДЕЛЕНИЕ ЦВЕТА */
-    QTableWidget {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        background-color: #ffffff;
-        alternate-background-color: #f8fafc;
-        gridline-color: #e2e8f0;
-        font-size: 12px;
-    }
-    
-    /* Только для обычных ячеек (не статус) устанавливаем цвет по умолчанию */
-    QTableWidget::item {
-        padding: 8px;
-    }
-    
-    /* Специальный класс для ячейки статуса - не переопределяем цвет, 
-       чтобы программные настройки цвета работали */
-    QTableWidget::item:selected {
-        background-color: #3b82f6;
-        color: #ffffff;
-    }
-    
-    QTableWidget::item:hover {
-        background-color: #f1f5f9;
-    }
-    
-    QHeaderView::section {
-        background-color: #f1f5f9;
-        padding: 10px;
-        border: none;
-        border-bottom: 1px solid #e2e8f0;
-        font-weight: bold;
-        color: #1e293b;
-        font-size: 12px;
-    }
-    
-    /* Стили для QProgressBar внутри таблицы */
-    QProgressBar {
-        border: 1px solid #cbd5e1;
-        background-color: #f1f5f9;
-        border-radius: 4px;
-        text-align: center;
-        color: #1f2d3d;
-        height: 20px;
-        font-size: 11px;
-    }
-    
-    QProgressBar::chunk {
-        background-color: #3b82f6;
-        border-radius: 3px;
-    }
-    
-    /* Специальные стили для QComboBox с правильным поведением выпадающего списка */
-    QComboBox {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        padding: 8px 10px;
-        background-color: #ffffff;
-        color: #1f2d3d;
-        font-size: 12px;
-        min-height: 20px;
-    }
-    
-    QComboBox:hover {
-        border-color: #94a3b8;
-    }
-    
-    QComboBox:focus {
-        border-color: #3b82f6;
-        outline: none;
-    }
-    
-    QComboBox::drop-down {
-        border: none;
-        width: 24px;
-        background: transparent;
-    }
-    
-    QComboBox::down-arrow {
-        image: none;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 5px solid #64748b;
-        margin-right: 8px;
-    }
-    
-    QComboBox::down-arrow:hover {
-        border-top-color: #3b82f6;
-    }
-    
-    /* Стили для выпадающего списка QComboBox - черный текст */
-    QComboBox QAbstractItemView {
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        background-color: #ffffff;
-        selection-background-color: #3b82f6;
-        selection-color: #ffffff;
-        outline: none;
-        margin: 0px;
-        padding: 0px;
-    }
-    
-    QComboBox QAbstractItemView::item {
-        padding: 8px 12px;
-        min-height: 24px;
-        background-color: #ffffff;
-        color: #1f2d3d;
-    }
-    
-    QComboBox QAbstractItemView::item:hover {
-        background-color: #f1f5f9;
-        color: #1f2d3d;
-    }
-    
-    QComboBox QAbstractItemView::item:selected {
-        background-color: #3b82f6;
-        color: #ffffff;
-    }
-    
-    QLineEdit:focus, QSpinBox:focus, QComboBox:focus, QListWidget:focus, QTableWidget:focus {
-        border-color: #3b82f6;
-        outline: none;
-    }
-    
-    /* Стили для QSpinBox с кнопками вверх/вниз */
-    QSpinBox {
-        padding-right: 20px;
-        color: #1f2d3d;
-    }
-    
-    QSpinBox::up-button {
-        subcontrol-origin: border;
-        subcontrol-position: top right;
-        width: 20px;
-        height: 18px;
-        border-left: 1px solid #cbd5e1;
-        border-bottom: 1px solid #cbd5e1;
-        border-radius: 0px;
-        background-color: #f8fafc;
-    }
-    
-    QSpinBox::up-button:hover {
-        background-color: #e2e8f0;
-    }
-    
-    QSpinBox::down-button {
-        subcontrol-origin: border;
-        subcontrol-position: bottom right;
-        width: 20px;
-        height: 18px;
-        border-left: 1px solid #cbd5e1;
-        border-top: 1px solid #cbd5e1;
-        border-radius: 0px;
-        background-color: #f8fafc;
-    }
-    
-    QSpinBox::down-button:hover {
-        background-color: #e2e8f0;
-    }
-    
-    QSlider::groove:horizontal {
-        border: none;
-        height: 5px;
-        background: #e2e8f0;
-        border-radius: 3px;
-    }
-    
-    QSlider::handle:horizontal {
-        background: #3b82f6;
-        width: 16px;
-        height: 16px;
-        margin: -5px 0;
-        border-radius: 8px;
-        border: 1px solid #3b82f6;
-    }
-    
-    QSlider::handle:horizontal:hover {
-        background: #2563eb;
-    }
-    
-    QSlider::sub-page:horizontal {
-        background: #3b82f6;
-        border-radius: 3px;
-    }
-    
-    QProgressBar {
-        border: 1px solid #cbd5e1;
-        background-color: #f1f5f9;
-        border-radius: 6px;
-        text-align: center;
-        color: #1f2d3d;
-        height: 24px;
-        font-size: 12px;
-    }
-    
-    QProgressBar::chunk {
-        background-color: #3b82f6;
-        border-radius: 5px;
-    }
-    
-    /* Стили для QCheckBox */
-    QCheckBox {
-        spacing: 10px;
-        color: #1f2d3d;
-        font-size: 12px;
-    }
-    
-    QCheckBox::indicator {
-        width: 18px;
-        height: 18px;
-        border-radius: 4px;
-        border: 1.5px solid #cbd5e1;
-        background-color: #ffffff;
-    }
-    
-    QCheckBox::indicator:checked {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-    }
-    
-    QCheckBox::indicator:checked:hover {
-        background-color: #2563eb;
-    }
-    
-    QCheckBox::indicator:unchecked:hover {
-        border-color: #94a3b8;
-    }
-    
-    QCheckBox::indicator:disabled {
-        background-color: #f1f5f9;
-        border-color: #e2e8f0;
-    }
-    
-    /* Навигационная панель */
-    #navWidget {
-        background-color: #ffffff;
-        border-top: 1px solid #e2e8f0;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    
-    #navWidget QPushButton {
-        background-color: transparent;
-        border: 1.5px solid transparent;
-        padding: 14px 24px;
-        font-weight: 600;
-        font-size: 14px;
-        color: #475569;
-    }
-    
-    #navWidget QPushButton:hover {
-        color: #3b82f6;
-        border-color: #3b82f6;
-        background-color: #f8fafc;
-    }
-   </string>
-  </property>
+    <property name="styleSheet">
+    <string notr="true">
+          /* Глобальные стили */
+          QMainWindow {
+              background-color: #f5f7fa;
+          }
+          
+          QLabel {
+              color: #2c3e50;
+          }
+          
+          QGroupBox {
+              font-weight: bold;
+              border: 1px solid #d0d7de;
+              border-radius: 8px;
+              margin-top: 12px;
+              padding-top: 12px;
+              background-color: #ffffff;
+          }
+          
+          QGroupBox::title {
+              subcontrol-origin: margin;
+              left: 16px;
+              padding: 0 8px 0 8px;
+              color: #1f2d3d;
+          }
+          
+          QPushButton {
+              background-color: #ffffff;
+              border: 1.5px solid #cbd5e1;
+              border-radius: 8px;
+              padding: 8px 20px;
+              font-weight: 500;
+              font-size: 13px;
+              color: #1f2d3d;
+          }
+          
+          QPushButton:hover {
+              background-color: #f1f5f9;
+              border-color: #94a3b8;
+          }
+          
+          QPushButton:pressed {
+              background-color: #e2e8f0;
+          }
+          
+          QPushButton#startProcessingBtn, QPushButton#startLocalBtn, QPushButton#connectBtn {
+              background-color: #3b82f6;
+              border: 1.5px solid #3b82f6;
+              color: white;
+              font-size: 14px;
+              font-weight: bold;
+          }
+          
+          QPushButton#startProcessingBtn:hover, QPushButton#startLocalBtn:hover, QPushButton#connectBtn:hover {
+              background-color: #2563eb;
+              border-color: #2563eb;
+          }
+          
+          QPushButton#clearQueueBtn, QPushButton#cancelSelectedBtn {
+              background-color: #ef4444;
+              border: 1.5px solid #ef4444;
+              color: white;
+              font-size: 14px;
+              font-weight: bold;
+          }
+          
+          QPushButton#clearQueueBtn:hover, QPushButton#cancelSelectedBtn:hover {
+              background-color: #dc2626;
+              border-color: #dc2626;
+          }
+          
+          QPushButton#openLogBtn {
+              background-color: #f1f5f9;
+              border-color: #cbd5e1;
+              color: #475569;
+              font-size: 12px;
+              padding: 6px 16px;
+          }
+          
+          QPushButton#openLogBtn:hover {
+              background-color: #e2e8f0;
+              border-color: #94a3b8;
+              color: #1f2d3d;
+          }
+          
+          /* Стили для QLineEdit */
+          QLineEdit {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              padding: 8px 10px;
+              background-color: #ffffff;
+              selection-background-color: #3b82f6;
+              font-size: 12px;
+              color: #1f2d3d;
+          }
+          
+          QLineEdit:focus {
+              border-color: #3b82f6;
+              outline: none;
+          }
+          
+          /* Стили для QListWidget */
+          QListWidget {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              padding: 8px 10px;
+              background-color: #ffffff;
+              selection-background-color: #3b82f6;
+              selection-color: #ffffff;
+              font-size: 12px;
+              color: #1f2d3d;
+          }
+          
+          QListWidget::item {
+              color: #1f2d3d;
+              padding: 5px;
+          }
+          
+          QListWidget::item:selected {
+              background-color: #3b82f6;
+              color: #ffffff;
+          }
+          
+          QListWidget::item:hover {
+              background-color: #f1f5f9;
+              color: #1f2d3d;
+          }
+          
+          QListWidget:focus {
+              border-color: #3b82f6;
+              outline: none;
+          }
+          
+          /* Стили для QTableWidget */
+          QTableWidget {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              background-color: #ffffff;
+              alternate-background-color: #f8fafc;
+              gridline-color: #e2e8f0;
+              font-size: 12px;
+          }
+          
+          QTableWidget::item {
+              padding: 8px;
+          }
+          
+          QTableWidget::item:selected,
+          QTableWidget::item:selected:active,
+          QTableWidget::item:selected:focus,
+          QTableWidget::item:selected:!active {
+              background-color: #3b82f6 !important;
+              color: #ffffff !important;
+          }
+          
+          QTableWidget::item:hover {
+              background-color: #f1f5f9;
+          }
+          
+          QTableWidget:focus {
+              border-color: #3b82f6;
+              outline: none;
+          }
+          
+          QHeaderView::section {
+              background-color: #f1f5f9;
+              padding: 10px;
+              border: none;
+              border-bottom: 1px solid #e2e8f0;
+              font-weight: bold;
+              color: #1e293b;
+              font-size: 12px;
+          }
+          
+          /* Стили для QProgressBar */
+          QProgressBar {
+              border: 1px solid #cbd5e1;
+              background-color: #f1f5f9;
+              border-radius: 4px;
+              text-align: center;
+              color: #1f2d3d;
+              height: 20px;
+              font-size: 11px;
+          }
+          
+          QProgressBar::chunk {
+              background-color: #3b82f6;
+              border-radius: 3px;
+          }
+          
+          /* ===== СТИЛИ ДЛЯ QComboBox ===== */
+          QComboBox {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              padding: 8px 28px 8px 12px;
+              background-color: #ffffff;
+              color: #1f2d3d;
+              font-size: 12px;
+              min-height: 20px;
+          }
+          
+          QComboBox:hover {
+              border-color: #94a3b8;
+          }
+          
+          QComboBox:focus, QComboBox:open {
+              border-color: #3b82f6;
+              outline: none;
+          }
+          
+          QComboBox::drop-down {
+              border: none;
+              width: 28px;
+              background: transparent;
+          }
+          
+          QComboBox QAbstractItemView {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              background-color: #ffffff;
+              selection-background-color: #3b82f6;
+              selection-color: #ffffff;
+              outline: none;
+              min-width: 200px;
+          }
+          
+          QComboBox QAbstractItemView::item {
+              padding: 8px 12px;
+              min-height: 24px;
+          }
+          
+          /* ===== СТИЛИ ДЛЯ QSpinBox / QTimeEdit / QDateTimeEdit ===== */
+          QSpinBox, QTimeEdit, QDateTimeEdit {
+              border: 1px solid #cbd5e1;
+              border-radius: 6px;
+              padding: 0 26px 0 10px;
+              min-height: 36px;
+              background-color: #ffffff;
+              selection-background-color: #3b82f6;
+              font-size: 12px;
+              color: #1f2d3d;
+          }
+          
+          QSpinBox:focus, QTimeEdit:focus, QDateTimeEdit:focus {
+              border-color: #3b82f6;
+              outline: none;
+          }
+          
+          /* Оставляем родные стрелки Qt, меняем только размер зоны кнопок */
+          QSpinBox::up-button, QTimeEdit::up-button, QDateTimeEdit::up-button {
+              subcontrol-origin: border;
+              subcontrol-position: top right;
+              width: 22px;
+              height: 18px;
+          }
+          
+          QSpinBox::down-button, QTimeEdit::down-button, QDateTimeEdit::down-button {
+              subcontrol-origin: border;
+              subcontrol-position: bottom right;
+              width: 22px;
+              height: 18px;
+          }
+          
+          /* Стили для QSlider */
+          QSlider::groove:horizontal {
+              border: none;
+              height: 5px;
+              background: #e2e8f0;
+              border-radius: 3px;
+          }
+          
+          QSlider::handle:horizontal {
+              background: #3b82f6;
+              width: 16px;
+              height: 16px;
+              margin: -5px 0;
+              border-radius: 8px;
+              border: 1px solid #3b82f6;
+          }
+          
+          QSlider::handle:horizontal:hover {
+              background: #2563eb;
+          }
+          
+          QSlider::sub-page:horizontal {
+              background: #3b82f6;
+              border-radius: 3px;
+          }
+          
+          /* Стили для QCheckBox */
+          QCheckBox {
+              spacing: 10px;
+              color: #1f2d3d;
+              font-size: 12px;
+          }
+          
+          QCheckBox::indicator {
+              width: 18px;
+              height: 18px;
+              border-radius: 4px;
+              border: 1.5px solid #cbd5e1;
+              background-color: #ffffff;
+          }
+          
+          QCheckBox::indicator:checked {
+              background-color: #3b82f6;
+              border-color: #3b82f6;
+          }
+          
+          QCheckBox::indicator:checked:hover {
+              background-color: #2563eb;
+          }
+          
+          QCheckBox::indicator:unchecked:hover {
+              border-color: #94a3b8;
+          }
+          
+          QCheckBox::indicator:disabled {
+              background-color: #f1f5f9;
+              border-color: #e2e8f0;
+          }
+          
+          /* Навигационная панель */
+          #navWidget {
+              background-color: #ffffff;
+              border-top: 1px solid #e2e8f0;
+              border-bottom: 1px solid #e2e8f0;
+          }
+          
+          #navWidget QPushButton {
+              background-color: transparent;
+              border: 1.5px solid transparent;
+              padding: 14px 24px;
+              font-weight: 600;
+              font-size: 14px;
+              color: #475569;
+          }
+          
+          #navWidget QPushButton:hover {
+              color: #3b82f6;
+              border-color: #3b82f6;
+              background-color: #f8fafc;
+          }
+    </string>
+    </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
@@ -1287,6 +1253,9 @@
                <width>120</width>
                <height>37</height>
               </size>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeft</set>
              </property>
              <property name="suffix">
               <string> LUFS</string>
