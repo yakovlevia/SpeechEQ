@@ -180,34 +180,46 @@ class Application(QApplication):
         if hasattr(self, 'processing_worker'):
             logger.info("Остановка рабочего потока...")
             self.processing_worker.stop()
+        
+        import time
+        time.sleep(0.5)
 
         if hasattr(self, 'processing_manager'):
             try:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                loop.run_until_complete(
-                    asyncio.wait_for(
-                        self.processing_manager.stop_processing(),
-                        timeout=5.0
-                    )
-                )
-            except asyncio.TimeoutError:
-                logger.warning("Таймаут при остановке обработки")
+                
+                async def shutdown_manager():
+                    try:
+                        await asyncio.wait_for(
+                            self.processing_manager.stop_processing(),
+                            timeout=5.0
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning("Таймаут при остановке обработки")
+                
+                loop.run_until_complete(shutdown_manager())
+                
+                pending = asyncio.all_tasks(loop)
+                for task in pending:
+                    if not task.done():
+                        task.cancel()
+                
+                if pending:
+                    try:
+                        loop.run_until_complete(
+                            asyncio.wait_for(
+                                asyncio.gather(*pending, return_exceptions=True),
+                                timeout=2.0
+                            )
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning("Таймаут при отмене оставшихся задач")
+                        
             except Exception as e:
                 logger.error(f"Ошибка при остановке обработки: {e}")
             finally:
-                try:
-                    pending = asyncio.all_tasks(loop)
-                    for task in pending:
-                        task.cancel()
-                    if pending:
-                        loop.run_until_complete(
-                            asyncio.gather(*pending, return_exceptions=True)
-                        )
-                except Exception:
-                    pass
-                finally:
-                    loop.close()
+                loop.close()
 
         if hasattr(self, 'processing_thread') and self.processing_thread.isRunning():
             logger.info("Ожидание завершения рабочего потока...")

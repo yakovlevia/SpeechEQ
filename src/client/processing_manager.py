@@ -107,29 +107,34 @@ class ProcessingManager:
         if self._stats_update_task and not self._stats_update_task.done():
             self._stats_update_task.cancel()
             try:
-                await self._stats_update_task
-            except asyncio.CancelledError:
+                await asyncio.wait_for(self._stats_update_task, timeout=1.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
 
         if self._processing_task and not self._processing_task.done():
             self._processing_task.cancel()
             try:
-                await self._processing_task
-            except asyncio.CancelledError:
+                await asyncio.wait_for(self._processing_task, timeout=2.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
                 logger.info("Обработка очереди остановлена")
 
         if self._active_tasks:
             logger.info(f"Отмена {len(self._active_tasks)} активных задач")
+            
             for task_obj in self._active_tasks.values():
                 if not task_obj.done():
                     task_obj.cancel()
-
-            try:
-                await asyncio.gather(*self._active_tasks.values(), return_exceptions=True)
-            except asyncio.CancelledError:
-                logger.info("Все активные задачи остановлены")
-            finally:
-                self._active_tasks.clear()
+            
+            if self._active_tasks:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*self._active_tasks.values(), return_exceptions=True),
+                        timeout=3.0
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning("Таймаут при отмене активных задач")
+                finally:
+                    self._active_tasks.clear()
 
     async def pause_task(self, task_id: str) -> bool:
         """

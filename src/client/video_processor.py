@@ -166,6 +166,7 @@ class VideoProcessor:
             manager (ProcessingManager, optional): Менеджер обработки для проверки глобальной паузы.
         """
         video_output_path = None
+        pending_tasks: set[asyncio.Task] = set()
         
         try:
             logger.info(f"Начало обработки видео: {task.input_path} (task_id={task.task_id[:12]}...)")
@@ -231,7 +232,6 @@ class VideoProcessor:
             # 1. ПАРАЛЛЕЛЬНАЯ ОБРАБОТКА АУДИО СЕГМЕНТОВ
             # ------------------------------------------------------------------
 
-            pending_tasks: set[asyncio.Task] = set()
             segment_count = len(existing_segments)
             segments_list: list[str] = list(existing_segments)
 
@@ -251,7 +251,13 @@ class VideoProcessor:
                 if await task.should_exit():
                     logger.info(f"Задача приостановлена или отменена: {task.input_path}")
                     for t in pending_tasks:
-                        t.cancel()
+                        if not t.done():
+                            t.cancel()
+                    if pending_tasks:
+                        try:
+                            await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=2.0)
+                        except asyncio.TimeoutError:
+                            logger.warning("Таймаут при отмене задач сегментов")
                     if segments_list:
                         try:
                             await loop.run_in_executor(
@@ -291,7 +297,13 @@ class VideoProcessor:
                     if await task.should_exit():
                         logger.info(f"Задача приостановлена или отменена после сегмента: {task.input_path}")
                         for t in pending_tasks:
-                            t.cancel()
+                            if not t.done():
+                                t.cancel()
+                        if pending_tasks:
+                            try:
+                                await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=2.0)
+                            except asyncio.TimeoutError:
+                                pass
                         if segments_list:
                             try:
                                 await loop.run_in_executor(
@@ -424,6 +436,18 @@ class VideoProcessor:
             logger.info(f"Обработка видео завершена: {Path(task.input_path).name}, сегментов: {segment_count}")
 
         except asyncio.CancelledError:
+            logger.info(f"Обработка видео отменена: {task.input_path}")
+            
+            for t in pending_tasks:
+                if not t.done():
+                    t.cancel()
+            
+            if pending_tasks:
+                try:
+                    await asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=2.0)
+                except asyncio.TimeoutError:
+                    logger.warning(f"Таймаут при отмене задач сегментов для {task.input_path}")
+            
             if 'segments_list' in locals() and segments_list and 'segments_list_path' in locals():
                 try:
                     loop = asyncio.get_running_loop()
@@ -435,16 +459,12 @@ class VideoProcessor:
                 except Exception as e:
                     logger.warning(f"Не удалось сохранить список сегментов: {e}")
             
-            logger.info(f"Обработка видео отменена: {task.input_path}")
             raise
         except Exception as e:
             await task.set_status(TaskStatus.FAILED)
             logger.exception(f"Ошибка при обработке видео {task.input_path}: {e}")
             raise
         finally:
-            # ------------------------------------------------------------------
-            # 7. УДАЛЕНИЕ ВРЕМЕННЫХ ФАЙЛОВ (видео без звука)
-            # ------------------------------------------------------------------
             if video_output_path and video_output_path.exists():
                 try:
                     video_output_path.unlink()
@@ -452,9 +472,6 @@ class VideoProcessor:
                 except Exception as e:
                     logger.warning(f"Не удалось удалить видео без звука {video_output_path}: {e}")
             
-            # ------------------------------------------------------------------
-            # 8. УДАЛЕНИЕ ВРЕМЕННОЙ ПАПКИ С АУДИО
-            # ------------------------------------------------------------------
             try:
                 audio_dir_path = Path(task.output_path).parent / ".audio" / task.task_id
                 if audio_dir_path.exists():
@@ -627,15 +644,6 @@ class VideoProcessor:
         task_id: str,
         segments_list: list[str]
     ) -> None:
-        """
-        Сохраняет обработанный аудио сегмент в WAV файл.
-
-        Args:
-            processed_segment (AudioSegment): Обработанный сегмент.
-            audio_dir (Path): Директория для сохранения.
-            task_id (str): ID задачи для формирования имени файла.
-            segments_list (list[str]): Список для добавления имени файла.
-        """
         wav_filename = f"{task_id}_segment_{processed_segment.segment_id:04d}.wav"
         wav_path = audio_dir / wav_filename
 
@@ -644,14 +652,21 @@ class VideoProcessor:
             audio_data = np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
 
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(
-            None,
-            lambda: wavfile.write(wav_path, processed_segment.sample_rate, audio_data)
-        )
-
-        segments_list.append(wav_filename)
-        del processed_segment.audio_data
-        del audio_data
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(
+                    None,
+                    lambda: wavfile.write(wav_path, processed_segment.sample_rate, audio_data)
+                ),
+                timeout=5.0
+            )
+            segments_list.append(wav_filename)
+        except asyncio.TimeoutError:
+            logger.error(f"Таймаут при сохранении сегмента {wav_filename}")
+            raise
+        finally:
+            del processed_segment.audio_data
+            del audio_data
 
     async def _process_segment_limited(
         self,

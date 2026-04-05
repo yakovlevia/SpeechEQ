@@ -316,24 +316,36 @@ class ProcessingWorker(QObject):
         logger.info("Рабочий поток: асинхронное завершение...")
 
         await self.processing_manager.stop_processing()
-
+        
+        await asyncio.sleep(0.5)
+        
+        tasks_to_cancel = []
+        
         if self._main_task and not self._main_task.done():
-            self._main_task.cancel()
-            try:
-                await self._main_task
-            except asyncio.CancelledError:
-                pass
-
+            tasks_to_cancel.append(self._main_task)
+        
         if self._monitor_task and not self._monitor_task.done():
-            self._monitor_task.cancel()
-            try:
-                await self._monitor_task
-            except asyncio.CancelledError:
-                pass
-
+            tasks_to_cancel.append(self._monitor_task)
+        
         if self._stats_task and not self._stats_task.done():
-            self._stats_task.cancel()
+            tasks_to_cancel.append(self._stats_task)
+        
+        if hasattr(self.processing_manager, '_active_tasks'):
+            for task in self.processing_manager._active_tasks.values():
+                if not task.done():
+                    tasks_to_cancel.append(task)
+        
+        if tasks_to_cancel:
+            logger.info(f"Отмена {len(tasks_to_cancel)} задач рабочего потока")
+            for task in tasks_to_cancel:
+                task.cancel()
+            
             try:
-                await self._stats_task
-            except asyncio.CancelledError:
-                pass
+                await asyncio.wait_for(
+                    asyncio.gather(*tasks_to_cancel, return_exceptions=True),
+                    timeout=3.0
+                )
+            except asyncio.TimeoutError:
+                logger.warning("Таймаут при отмене задач рабочего потока")
+        
+        logger.info("Рабочий поток: асинхронное завершение выполнено")
