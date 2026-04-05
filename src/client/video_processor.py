@@ -8,6 +8,7 @@ import os
 import json
 import numpy as np
 import datetime
+import shutil
 from scipy.io import wavfile
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -124,6 +125,38 @@ class VideoProcessor:
                 return True
         return False
 
+    def _get_task_dirs(self, task: AudioCleanupTask):
+        """
+        Создаёт и возвращает директории для временных файлов, привязанные к task_id.
+
+        Args:
+            task: Задача обработки.
+
+        Returns:
+            tuple: (video_output_dir, audio_dir, clean_audio_dir, tmp_audio_dir)
+        """
+        input_path = Path(task.input_path)
+        video_name = input_path.stem
+        video_ext = input_path.suffix
+        
+        output_parent = Path(task.output_path).parent
+        base_dir = output_parent
+
+        video_output_dir = base_dir / ".video"
+        audio_dir = base_dir / ".audio" / task.task_id
+        
+        clean_audio_dir = audio_dir / "clean"
+        tmp_audio_dir = audio_dir / "tmp"
+
+        video_output_dir.mkdir(parents=True, exist_ok=True)
+        audio_dir.mkdir(parents=True, exist_ok=True)
+        clean_audio_dir.mkdir(parents=True, exist_ok=True)
+        tmp_audio_dir.mkdir(parents=True, exist_ok=True)
+
+        video_output_path = video_output_dir / f"{task.task_id}_noaudio{video_ext}"
+
+        return video_output_dir, video_output_path, audio_dir, clean_audio_dir, tmp_audio_dir
+
     async def process_video(self, task: AudioCleanupTask, manager=None) -> None:
         """
         Асинхронно обрабатывает видео от начала до конца.
@@ -132,8 +165,10 @@ class VideoProcessor:
             task (AudioCleanupTask): Задача для обработки.
             manager (ProcessingManager, optional): Менеджер обработки для проверки глобальной паузы.
         """
+        video_output_path = None
+        
         try:
-            logger.info(f"Начало обработки видео: {task.input_path}")
+            logger.info(f"Начало обработки видео: {task.input_path} (task_id={task.task_id[:12]}...)")
 
             if not os.path.exists(task.input_path):
                 raise FileNotFoundError(f"Файл не найден: {task.input_path}")
@@ -173,24 +208,7 @@ class VideoProcessor:
                 f"сегментов: {total_segments}, уже обработано: {task.cleaned_segments}"
             )
 
-            input_path = Path(task.input_path)
-            video_name = input_path.stem
-            video_ext = input_path.suffix
-
-            output_parent = Path(task.output_path).parent
-            base_dir = output_parent
-
-            video_output_dir = base_dir / ".video"
-            audio_dir = base_dir / ".audio" / video_name
-            clean_audio_dir = audio_dir / "clean"
-            tmp_audio_dir = audio_dir / "tmp"
-
-            video_output_dir.mkdir(parents=True, exist_ok=True)
-            audio_dir.mkdir(parents=True, exist_ok=True)
-            clean_audio_dir.mkdir(parents=True, exist_ok=True)
-            tmp_audio_dir.mkdir(parents=True, exist_ok=True)
-
-            video_output_path = video_output_dir / f"{video_name}{video_ext}"
+            _, video_output_path, audio_dir, clean_audio_dir, tmp_audio_dir = self._get_task_dirs(task)
 
             if task.is_cancelled():
                 logger.info(f"Задача отменена перед загрузкой сегментов: {task.input_path}")
@@ -228,6 +246,7 @@ class VideoProcessor:
                 segment_duration=AUDIO_CONFIG["segment_duration"],
                 overlap_duration=AUDIO_CONFIG["overlap_duration"],
                 sample_rate=AUDIO_CONFIG["sample_rate"],
+                task_id=task.task_id,
             ):
                 if await task.should_exit():
                     logger.info(f"Задача приостановлена или отменена: {task.input_path}")
@@ -247,7 +266,7 @@ class VideoProcessor:
                 if manager:
                     await manager.check_global_pause()
 
-                segment_filename = f"{video_name}_segment_{segment.segment_id:04d}.wav"
+                segment_filename = f"{task.task_id}_segment_{segment.segment_id:04d}.wav"
                 if segment_filename in existing_segments:
                     logger.debug(f"Сегмент {segment.segment_id} уже обработан, пропускаем")
                     continue
@@ -256,7 +275,8 @@ class VideoProcessor:
                     self._process_segment_limited(
                         segment,
                         task.handler,
-                        task.handler_settings
+                        task.handler_settings,
+                        task.task_id
                     )
                 )
                 pending_tasks.add(seg_task)
@@ -287,7 +307,7 @@ class VideoProcessor:
                         await manager.check_global_pause()
 
                     processed_segment = finished.result()
-                    await self._save_processed_segment(processed_segment, clean_audio_dir, video_name, segments_list)
+                    await self._save_processed_segment(processed_segment, clean_audio_dir, task.task_id, segments_list)
                     segment_count += 1
                     await task.increment_progress()
 
@@ -313,7 +333,7 @@ class VideoProcessor:
                         await manager.check_global_pause()
 
                     processed_segment = finished.result()
-                    await self._save_processed_segment(processed_segment, clean_audio_dir, video_name, segments_list)
+                    await self._save_processed_segment(processed_segment, clean_audio_dir, task.task_id, segments_list)
                     segment_count += 1
                     await task.increment_progress()
 
@@ -354,7 +374,7 @@ class VideoProcessor:
             # 3. СОХРАНЕНИЕ ВИДЕО БЕЗ АУДИО
             # ------------------------------------------------------------------
             logger.info("Сохранение видео без аудио")
-            await self._save_video_without_audio(task.input_path, video_output_path)
+            await self._save_video_without_audio(task.input_path, str(video_output_path))
 
             # ------------------------------------------------------------------
             # 4. СОХРАНЕНИЕ СПИСКА СЕГМЕНТОВ
@@ -401,34 +421,7 @@ class VideoProcessor:
                 await task.update_progress(task.total_segments)
                 logger.info(f"Прогресс финальный: {task.cleaned_segments}/{task.total_segments}")
 
-            # ------------------------------------------------------------------
-            # 7. СОЗДАНИЕ ОТЧЕТА (SUMMARY)
-            # ------------------------------------------------------------------
-            summary_info = {
-                "video_name": video_name,
-                "original_video": str(task.input_path),
-                "video_with_clean_audio": str(task.output_path),
-                "audio_dir": str(audio_dir),
-                "clean_audio_dir": str(clean_audio_dir),
-                "tmp_audio_dir": str(tmp_audio_dir),
-                "total_segments": segment_count,
-                "processing_time": datetime.datetime.now().isoformat()
-            }
-
-            summary_path = audio_dir / "summary.json"
-            await loop.run_in_executor(None, lambda: self._write_summary(summary_path, summary_info))
-
-            # ------------------------------------------------------------------
-            # 8. ОЧИСТКА ВРЕМЕННЫХ ФАЙЛОВ
-            # ------------------------------------------------------------------
-            try:
-                import shutil
-                shutil.rmtree(tmp_audio_dir)
-                logger.info(f"Удалена временная папка: {tmp_audio_dir}")
-            except Exception as e:
-                logger.warning(f"Не удалось удалить временную папку {tmp_audio_dir}: {e}")
-
-            logger.info(f"Обработка видео завершена: {video_name}, сегментов: {segment_count}")
+            logger.info(f"Обработка видео завершена: {Path(task.input_path).name}, сегментов: {segment_count}")
 
         except asyncio.CancelledError:
             if 'segments_list' in locals() and segments_list and 'segments_list_path' in locals():
@@ -448,6 +441,27 @@ class VideoProcessor:
             await task.set_status(TaskStatus.FAILED)
             logger.exception(f"Ошибка при обработке видео {task.input_path}: {e}")
             raise
+        finally:
+            # ------------------------------------------------------------------
+            # 7. УДАЛЕНИЕ ВРЕМЕННЫХ ФАЙЛОВ (видео без звука)
+            # ------------------------------------------------------------------
+            if video_output_path and video_output_path.exists():
+                try:
+                    video_output_path.unlink()
+                    logger.info(f"Удалено видео без звука: {video_output_path}")
+                except Exception as e:
+                    logger.warning(f"Не удалось удалить видео без звука {video_output_path}: {e}")
+            
+            # ------------------------------------------------------------------
+            # 8. УДАЛЕНИЕ ВРЕМЕННОЙ ПАПКИ С АУДИО
+            # ------------------------------------------------------------------
+            try:
+                audio_dir_path = Path(task.output_path).parent / ".audio" / task.task_id
+                if audio_dir_path.exists():
+                    shutil.rmtree(audio_dir_path)
+                    logger.info(f"Удалена временная папка с аудио: {audio_dir_path}")
+            except Exception as e:
+                logger.warning(f"Не удалось удалить временную папку с аудио: {e}")
 
     async def assemble_audio(
         self,
@@ -540,7 +554,7 @@ class VideoProcessor:
         
         result_audio_int16 = np.clip(result_audio * 32767, -32768, 32767).astype(np.int16)
         
-        output_wav_path = audio_dir.parent / f"{Path(task.input_path).stem}_assembled.wav"
+        output_wav_path = audio_dir.parent / f"{task.task_id}_assembled.wav"
         
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(
@@ -610,7 +624,7 @@ class VideoProcessor:
         self,
         processed_segment: AudioSegment,
         audio_dir: Path,
-        video_name: str,
+        task_id: str,
         segments_list: list[str]
     ) -> None:
         """
@@ -619,10 +633,10 @@ class VideoProcessor:
         Args:
             processed_segment (AudioSegment): Обработанный сегмент.
             audio_dir (Path): Директория для сохранения.
-            video_name (str): Имя видео для формирования имени файла.
+            task_id (str): ID задачи для формирования имени файла.
             segments_list (list[str]): Список для добавления имени файла.
         """
-        wav_filename = f"{video_name}_segment_{processed_segment.segment_id:04d}.wav"
+        wav_filename = f"{task_id}_segment_{processed_segment.segment_id:04d}.wav"
         wav_path = audio_dir / wav_filename
 
         audio_data = processed_segment.audio_data
@@ -643,7 +657,8 @@ class VideoProcessor:
         self,
         segment: AudioSegment,
         handler,
-        handler_settings
+        handler_settings,
+        task_id: str = None
     ) -> AudioSegment:
         """
         Обрабатывает аудио сегмент с ограничением параллелизма через семафор.
@@ -652,30 +667,29 @@ class VideoProcessor:
             segment (AudioSegment): Исходный сегмент.
             handler: Обработчик аудио.
             handler_settings: Настройки обработчика.
+            task_id (str): ID задачи для передачи в обработку.
 
         Returns:
             AudioSegment: Обработанный сегмент.
         """
         async with self.segment_semaphore:
             loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
+            processed = await loop.run_in_executor(
                 None,
                 self.audio_processor.process_audio_segment,
                 segment,
                 handler,
                 handler_settings
             )
+            if task_id:
+                processed.task_id = task_id + "_processed"
+            return processed
 
     def _write_segments_list(self, path: Path, segments_list: List[str]) -> None:
         """Синхронно записывает список сегментов в файл."""
         with open(path, 'w', encoding='utf-8') as f:
             for wav_file in segments_list:
                 f.write(f"file '{wav_file}'\n")
-
-    def _write_summary(self, path: Path, summary_info: Dict[str, Any]) -> None:
-        """Синхронно записывает сводку обработки в JSON файл."""
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(summary_info, f, indent=2, ensure_ascii=False)
 
     async def _extract_metadata(self, video_path: str) -> Dict[str, Any]:
         """Извлекает метаданные видео с помощью ffprobe."""
@@ -724,56 +738,6 @@ class VideoProcessor:
         _, stderr = await process.communicate()
         if process.returncode != 0:
             raise RuntimeError(f"Ошибка ffmpeg при сохранении видео без аудио: {stderr.decode()}")
-
-    async def _create_segments_report(
-        self,
-        video_path: str,
-        output_dir: Path,
-        task: AudioCleanupTask
-    ) -> None:
-        """Создаёт отчёт об аудио сегментах."""
-        if video_path not in self._audio_segments:
-            return
-
-        segments = self._audio_segments[video_path]
-        report_path = output_dir / f"{Path(video_path).stem}_segments_report.json"
-
-        report_data = {
-            "video_path": video_path,
-            "task_info": {
-                "priority": task.priority,
-                "input_path": task.input_path,
-                "output_path": task.output_path,
-                "total_segments": task.total_segments,
-                "cleaned_segments": task.cleaned_segments,
-                "progress_percentage": await task.get_progress_percentage(),
-                "is_completed": task.is_completed()
-            },
-            "audio_config": {
-                "segment_duration": AUDIO_CONFIG["segment_duration"],
-                "overlap_duration": AUDIO_CONFIG["overlap_duration"],
-                "sample_rate": AUDIO_CONFIG["sample_rate"]
-            },
-            "segments": []
-        }
-
-        for segment in segments:
-            segment_info = {
-                "segment_id": segment.segment_id,
-                "start_time": segment.start_time,
-                "end_time": segment.end_time,
-                "duration": segment.duration,
-                "sample_rate": segment.sample_rate,
-                "data_shape": segment.audio_data.shape,
-                "data_dtype": str(segment.audio_data.dtype),
-                "fragment_path": f"/mnt/d/diplom/.audio/{Path(video_path).stem}/fragment_{segment.segment_id}"
-            }
-            report_data["segments"].append(segment_info)
-
-        with open(report_path, 'w') as f:
-            json.dump(report_data, f, indent=2)
-
-        logger.info(f"Отчёт о сегментах сохранён: {report_path}")
 
     async def process_multiple_videos(
         self,

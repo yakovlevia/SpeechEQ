@@ -65,15 +65,13 @@ class ProcessingManager:
                 logger.warning(f"Задача {task.task_id} уже существует")
                 return
 
-            for existing_task in self._all_tasks.values():
-                if existing_task.input_path == task.input_path:
-                    logger.warning(f"Задача для файла {task.input_path} уже существует")
-                    return
+            # Не проверяем input_path - разрешаем добавлять один и тот же файл много раз
+            # с разными выходными путями (разные task_id)
 
             await task.set_status(TaskStatus.PENDING)
             self._all_tasks[task.task_id] = task
             await self.task_queue.add_task(task)
-            logger.info(f"Задача добавлена: {task.input_path} (ID: {task.task_id[:12]}..., приоритет={task.priority})")
+            logger.info(f"Задача добавлена: {task.input_path} -> {task.output_path} (ID: {task.task_id[:12]}..., приоритет={task.priority})")
 
     async def get_task(self, task_id: str) -> Optional[AudioCleanupTask]:
         """Возвращает задачу по ID."""
@@ -427,8 +425,9 @@ class ProcessingManager:
         Returns:
             Кортеж (длительность, количество сегментов)
         """
-        # TODO: в VideoProcessor нет метода get_video_info, возможно, нужно реализовать
-        return await self.video_processor.get_video_info(video_path)
+        duration = await self.video_processor.audio_processor.get_video_duration_fast(video_path)
+        total_segments = await self.video_processor.calculate_total_segments(video_path)
+        return duration, total_segments
     
     def get_semaphore_stats(self) -> dict:
         """

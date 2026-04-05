@@ -111,21 +111,26 @@ class AudioProcessor:
 
         return 0.0
     
-    def _get_temp_dir(self, video_path: str) -> Path:
+    def _get_temp_dir(self, video_path: str, task_id: str = None) -> Path:
         """
         Создает и возвращает путь к временной директории для видео.
 
         Args:
             video_path (str): Путь к видеофайлу.
+            task_id (str, optional): ID задачи для уникальности папки.
 
         Returns:
             Path: Путь к временной директории.
         """
         input_path = Path(video_path)
-        video_name = input_path.stem
         base_dir = input_path.parent
         
-        temp_dir = base_dir / ".audio" / video_name / "tmp"
+        if task_id:
+            temp_dir = base_dir / ".audio" / task_id / "tmp"
+        else:
+            video_name = input_path.stem
+            temp_dir = base_dir / ".audio" / video_name / "tmp"
+            
         temp_dir.mkdir(parents=True, exist_ok=True)
         
         return temp_dir
@@ -136,6 +141,7 @@ class AudioProcessor:
         segment_duration: int = 30,
         overlap_duration: int = 1,
         sample_rate: int = 44100,
+        task_id: str = None,
     ) -> AsyncGenerator[AudioSegment, None]:
         """
         Асинхронный генератор для извлечения аудио сегментов из видео.
@@ -151,6 +157,7 @@ class AudioProcessor:
                 между сегментами в секундах. По умолчанию 1.
             sample_rate (int, optional): Частота дискретизации для
                 извлеченного аудио. По умолчанию 44100.
+            task_id (str, optional): ID задачи для уникальности.
 
         Yields:
             AsyncGenerator[AudioSegment, None]: Очередной аудио сегмент для обработки.
@@ -181,10 +188,11 @@ class AudioProcessor:
                     break
 
                 audio_data = await self._extract_single_audio_segment(
-                    video_path, start_time, actual_duration, sample_rate
+                    video_path, start_time, actual_duration, sample_rate, task_id
                 )
 
                 if audio_data is not None and len(audio_data) > 0:
+                    seg_task_id = task_id if task_id else Path(video_path).stem
                     yield AudioSegment(
                         segment_id=segment_id,
                         start_time=start_time,
@@ -193,7 +201,7 @@ class AudioProcessor:
                         audio_data=audio_data,
                         sample_rate=sample_rate,
                         video_path=video_path,
-                        task_id=Path(video_path).stem
+                        task_id=seg_task_id
                     )
 
                 segment_id += 1
@@ -208,7 +216,8 @@ class AudioProcessor:
         video_path: str, 
         start_time: float, 
         duration: float,
-        sample_rate: int
+        sample_rate: int,
+        task_id: str = None
     ) -> Optional[np.ndarray]:
         """
         Извлекает один аудио сегмент из видео.
@@ -218,6 +227,7 @@ class AudioProcessor:
             start_time (float): Время начала сегмента в секундах.
             duration (float): Длительность сегмента в секундах.
             sample_rate (int): Частота дискретизации аудио.
+            task_id (str, optional): ID задачи для уникальности.
 
         Returns:
             Optional[np.ndarray]: Аудио данные в формате float32 
@@ -227,11 +237,14 @@ class AudioProcessor:
             Использует временные файлы для извлечения аудио через ffmpeg.
             Автоматически очищает временные файлы после обработки.
         """
-        temp_dir = self._get_temp_dir(video_path)
+        temp_dir = self._get_temp_dir(video_path, task_id)
         
         import time
         timestamp = int(time.time() * 1000000)
-        temp_filename = f"audio_{timestamp}_{int(start_time)}_{int(duration)}.wav"
+        if task_id:
+            temp_filename = f"{task_id}_audio_{timestamp}_{int(start_time)}_{int(duration)}.wav"
+        else:
+            temp_filename = f"audio_{timestamp}_{int(start_time)}_{int(duration)}.wav"
         temp_path = temp_dir / temp_filename
         
         logger.debug(f"Создание временного файла: {temp_path}")
