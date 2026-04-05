@@ -19,12 +19,27 @@ logger = logging.getLogger(__name__)
 
 
 class ProcessingScreenLogic(QObject):
-    """Логика экрана выбора файлов и настроек."""
+    """Логика экрана выбора файлов и настроек обработки."""
 
     tasks_added = Signal(list)
     processing_started = Signal()
 
+    _global_priority_counter = 0
+    _counter_lock = None
+    
+    _used_output_paths = set()
+    _paths_lock = None
+
     def __init__(self, ui, parent, audio_handler, default_settings, connection_manager=None):
+        """
+        Инициализация логики экрана обработки.
+
+        :param ui: Экземпляр пользовательского интерфейса
+        :param parent: Родительский виджет
+        :param audio_handler: Обработчик аудио для локальной обработки
+        :param default_settings: Настройки обработки по умолчанию
+        :param connection_manager: Менеджер gRPC-подключений (опционально)
+        """
         super().__init__(parent)
         self.ui = ui
         self.parent = parent
@@ -34,21 +49,116 @@ class ProcessingScreenLogic(QObject):
         self.processing_worker = None
         self.selected_files = []
 
+        if ProcessingScreenLogic._counter_lock is None:
+            import threading
+            ProcessingScreenLogic._counter_lock = threading.Lock()
+        
+        if ProcessingScreenLogic._paths_lock is None:
+            import threading
+            ProcessingScreenLogic._paths_lock = threading.Lock()
+
         self.load_settings()
         self.connect_signals()
         self.setup_drag_drop()
 
+    @classmethod
+    def _get_next_priority(cls) -> int:
+        """
+        Возвращает следующий глобальный приоритет.
+
+        Returns:
+            int: Следующий номер приоритета
+        """
+        with cls._counter_lock:
+            cls._global_priority_counter += 1
+            return cls._global_priority_counter
+
+    @classmethod
+    def reset_priority_counter(cls):
+        """Сбрасывает глобальный счетчик приоритетов."""
+        with cls._counter_lock:
+            cls._global_priority_counter = 0
+            logger.info("Глобальный счетчик приоритетов сброшен")
+
+    @classmethod
+    def clear_used_output_paths(cls):
+        """Очищает список занятых выходных путей."""
+        with cls._paths_lock:
+            cls._used_output_paths.clear()
+            logger.info("Список занятых выходных путей очищен")
+
+    @classmethod
+    def remove_output_path(cls, output_path: str):
+        """
+        Удаляет путь из списка занятых (при отмене или завершении задачи).
+
+        :param output_path: Путь для удаления
+        """
+        with cls._paths_lock:
+            if output_path in cls._used_output_paths:
+                cls._used_output_paths.remove(output_path)
+                logger.debug(f"Путь освобожден: {output_path}")
+
+    def _get_unique_output_path(self, output_folder: Path, input_file: Path, overwrite: bool) -> str:
+        """
+        Генерирует уникальный путь для выходного файла, учитывая существующие файлы на диске
+        и пути задач, уже находящихся в очереди.
+
+        :param output_folder: Папка для сохранения
+        :param input_file: Исходный файл
+        :param overwrite: Флаг перезаписи исходного файла
+        :return: Уникальный путь для выходного файла
+        """
+        if overwrite:
+            return str(input_file)
+
+        base_name = f"{input_file.stem}_speecheq"
+        suffix = input_file.suffix
+        
+        counter = 0
+        output_path = None
+        
+        with ProcessingScreenLogic._paths_lock:
+            while True:
+                if counter == 0:
+                    output_name = f"{base_name}{suffix}"
+                else:
+                    output_name = f"{base_name}_{counter}{suffix}"
+                
+                output_path = output_folder / output_name
+                output_path_str = str(output_path)
+                
+                if not output_path.exists() and output_path_str not in ProcessingScreenLogic._used_output_paths:
+                    ProcessingScreenLogic._used_output_paths.add(output_path_str)
+                    logger.debug(f"Уникальный путь создан: {output_path}")
+                    break
+                
+                logger.debug(f"Путь {output_path} уже занят, пробуем следующий (counter={counter})")
+                counter += 1
+
+        return str(output_path)
+
     def set_processing_worker(self, worker):
+        """
+        Установка рабочего потока обработки.
+
+        :param worker: Экземпляр ProcessingWorker для обработки задач
+        """
         self.processing_worker = worker
         logger.info("Установлен рабочий поток обработки")
 
     def get_current_handler(self):
-        """Возвращает текущий обработчик (локальный или удалённый)."""
+        """
+        Возвращает текущий обработчик (локальный или удалённый).
+
+        :return: Активный обработчик аудио
+        """
         if self.connection_manager:
             return self.connection_manager.get_current_handler()
         return self.audio_handler
 
     def connect_signals(self):
+        """Подключение сигналов элементов управления к обработчикам событий."""
         self.ui.noiseReductionCheck.toggled.connect(self.on_setting_changed)
         self.ui.noiseReductionSlider.valueChanged.connect(self.on_setting_changed)
         self.ui.humRemovalCheck.toggled.connect(self.on_setting_changed)
@@ -70,15 +180,26 @@ class ProcessingScreenLogic(QObject):
         self.ui.fileListWidget.itemDoubleClicked.connect(self.on_item_double_clicked)
 
     def setup_drag_drop(self):
+        """Настройка поддержки перетаскивания файлов в список."""
         self.ui.fileListWidget.setAcceptDrops(True)
         self.ui.fileListWidget.dragEnterEvent = self.drag_enter_event
         self.ui.fileListWidget.dropEvent = self.drop_event
 
     def drag_enter_event(self, event: QDragEnterEvent):
+        """
+        Обработчик события входа перетаскиваемого объекта.
+
+        :param event: Событие drag enter
+        """
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
     def drop_event(self, event: QDropEvent):
+        """
+        Обработчик события завершения перетаскивания файлов.
+
+        :param event: Событие drop
+        """
         files = []
         for url in event.mimeData().urls():
             file_path = url.toLocalFile()
@@ -87,10 +208,17 @@ class ProcessingScreenLogic(QObject):
         self.add_files(files)
 
     def is_supported_format(self, file_path: str) -> bool:
+        """
+        Проверка поддержки формата файла.
+
+        :param file_path: Путь к файлу для проверки
+        :return: True если формат поддерживается, иначе False
+        """
         supported = ['.mp4', '.mov', '.mkv', '.avi', '.flv', '.wmv']
         return Path(file_path).suffix.lower() in supported
 
     def load_settings(self):
+        """Загрузка сохранённых настроек обработки из QSettings."""
         saved = QSettings("SpeechEQ", "Processing")
 
         self.ui.noiseReductionCheck.setChecked(
@@ -133,6 +261,7 @@ class ProcessingScreenLogic(QObject):
         )
 
     def save_settings(self):
+        """Сохранение текущих настроек обработки в QSettings."""
         saved = QSettings("SpeechEQ", "Processing")
         saved.setValue("noise_reduction", self.ui.noiseReductionCheck.isChecked())
         saved.setValue("noise_reduction_level", self.ui.noiseReductionSlider.value())
@@ -148,9 +277,11 @@ class ProcessingScreenLogic(QObject):
         saved.setValue("overwrite", self.ui.overwriteCheck.isChecked())
 
     def on_setting_changed(self):
+        """Обработчик изменения любой настройки — сохраняет настройки автоматически."""
         self.save_settings()
 
     def on_select_files(self):
+        """Обработчик кнопки выбора файлов через диалог."""
         files, _ = QFileDialog.getOpenFileNames(
             self.ui.centralwidget,
             "Выберите видеофайлы",
@@ -161,6 +292,7 @@ class ProcessingScreenLogic(QObject):
             self.add_files(files)
 
     def on_select_folder(self):
+        """Обработчик кнопки выбора папки с автоматическим добавлением поддерживаемых файлов."""
         folder = QFileDialog.getExistingDirectory(
             self.ui.centralwidget,
             "Выберите папку с видео"
@@ -178,6 +310,11 @@ class ProcessingScreenLogic(QObject):
             )
 
     def add_files(self, files: list):
+        """
+        Добавление файлов в список очереди обработки.
+
+        :param files: Список путей к файлам для добавления
+        """
         added = 0
         for file in files:
             if file not in self.selected_files:
@@ -195,11 +332,13 @@ class ProcessingScreenLogic(QObject):
             )
 
     def clear_file_list(self):
+        """Очистка списка выбранных файлов и виджета отображения."""
         self.ui.fileListWidget.clear()
         self.selected_files.clear()
         logger.info("Список файлов очищен")
 
     def on_browse_output(self):
+        """Обработчик кнопки выбора папки для сохранения результатов."""
         folder = QFileDialog.getExistingDirectory(
             self.ui.centralwidget,
             "Выберите папку для сохранения результатов"
@@ -209,6 +348,11 @@ class ProcessingScreenLogic(QObject):
             self.save_settings()
 
     def on_item_double_clicked(self, item):
+        """
+        Обработчик двойного клика по элементу списка — удаление файла из очереди.
+
+        :param item: Элемент списка, по которому был выполнен клик
+        """
         index = self.ui.fileListWidget.row(item)
         if 0 <= index < len(self.selected_files):
             reply = QMessageBox.question(
@@ -222,6 +366,7 @@ class ProcessingScreenLogic(QObject):
                 self.selected_files.pop(index)
 
     def on_clear_queue(self):
+        """Обработчик кнопки очистки всей очереди файлов."""
         if self.selected_files:
             reply = QMessageBox.question(
                 self.ui.centralwidget,
@@ -233,6 +378,11 @@ class ProcessingScreenLogic(QObject):
                 self.clear_file_list()
 
     def get_processing_settings(self) -> ProcessingSettings:
+        """
+        Сбор текущих настроек обработки из элементов интерфейса.
+
+        :return: Настроенный экземпляр ProcessingSettings
+        """
         settings = ProcessingSettings()
 
         settings.noise_reduction = self.ui.noiseReductionCheck.isChecked()
@@ -258,6 +408,11 @@ class ProcessingScreenLogic(QObject):
         return settings
 
     def create_tasks(self) -> list:
+        """
+        Создание задач обработки на основе выбранных файлов и настроек.
+
+        :return: Список созданных задач AudioCleanupTask
+        """
         if not self.selected_files:
             QMessageBox.warning(
                 self.ui.centralwidget,
@@ -272,12 +427,14 @@ class ProcessingScreenLogic(QObject):
             Path(output_folder).mkdir(parents=True, exist_ok=True)
             self.ui.outputFolderLineEdit.setText(output_folder)
 
+        output_folder_path = Path(output_folder)
+        overwrite = self.ui.overwriteCheck.isChecked()
         settings = self.get_processing_settings()
         tasks = []
         current_handler = self.get_current_handler()
         audio_proc = AudioProcessor()
 
-        for i, input_path in enumerate(self.selected_files):
+        for input_path in self.selected_files:
             input_file = Path(input_path)
 
             try:
@@ -299,19 +456,12 @@ class ProcessingScreenLogic(QObject):
                 total_segments = max(1, int(np.ceil((duration - overlap) / step)))
                 logger.debug(f"Видео {input_file.name}: длительность {duration:.1f}s, сегментов {total_segments}")
 
-            if self.ui.overwriteCheck.isChecked():
-                output_path = str(input_file)
-            else:
-                output_name = f"{input_file.stem}_speecheq{input_file.suffix}"
-                output_path = str(Path(output_folder) / output_name)
-                counter = 1
-                while Path(output_path).exists():
-                    output_name = f"{input_file.stem}_speecheq_{counter}{input_file.suffix}"
-                    output_path = str(Path(output_folder) / output_name)
-                    counter += 1
+            output_path = self._get_unique_output_path(output_folder_path, input_file, overwrite)
+
+            priority = self._get_next_priority()
 
             task = AudioCleanupTask(
-                priority=i + 1,
+                priority=priority,
                 input_path=input_path,
                 output_path=output_path,
                 handler=current_handler,
@@ -326,9 +476,13 @@ class ProcessingScreenLogic(QObject):
 
             tasks.append(task)
 
+        logger.info(f"Создано {len(tasks)} задач с приоритетами от {tasks[0].priority if tasks else 0} "
+                   f"до {tasks[-1].priority if tasks else 0}")
+
         return tasks
 
     def on_start_processing(self):
+        """Обработчик кнопки запуска обработки — валидация, создание задач и запуск."""
         if self.connection_manager and not self.connection_manager.is_local():
             if not self.connection_manager.is_connected():
                 QMessageBox.warning(
