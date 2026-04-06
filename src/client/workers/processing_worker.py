@@ -4,9 +4,11 @@
 Управляет асинхронной обработкой задач, мониторингом статуса и прогресса,
 а также передачей сигналов в UI-поток через Qt-сигналы.
 """
+
 import asyncio
 import logging
 from pathlib import Path
+from typing import Optional, Dict, Set, List, Any
 from PySide6.QtCore import QObject, Signal, Slot
 
 from client.video_queue import TaskStatus
@@ -26,25 +28,29 @@ class ProcessingWorker(QObject):
     task_started = Signal(str)
     progress_updated = Signal(str, int, int)
 
-    def __init__(self, processing_manager):
+    def __init__(self, processing_manager: Any) -> None:
         """
         Инициализирует рабочий поток обработки.
 
         Args:
-            processing_manager: Менеджер обработки задач
+            processing_manager: Менеджер обработки задач.
+
+        Raises:
+            Exception: При ошибках инициализации.
         """
         super().__init__()
         self.processing_manager = processing_manager
-        self._running = True
-        self._loop = None
-        self._main_task = None
-        self._monitor_task = None
-        self._stats_task = None
-        self._started_emitted = set()
-        self._finished_emitted = set()
-        self._last_progress = {}
+        self._running: bool = True
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._main_task: Optional[asyncio.Task] = None
+        self._monitor_task: Optional[asyncio.Task] = None
+        self._stats_task: Optional[asyncio.Task] = None
+        self._started_emitted: Set[str] = set()
+        self._finished_emitted: Set[str] = set()
+        self._last_progress: Dict[str, int] = {}
+        self._last_status: Dict[str, str] = {}
 
-    def setup_asyncio(self):
+    def setup_asyncio(self) -> None:
         """Настраивает и запускает цикл asyncio в текущем потоке."""
         try:
             self._loop = asyncio.new_event_loop()
@@ -61,7 +67,7 @@ class ProcessingWorker(QObject):
         finally:
             self._cleanup_loop()
 
-    def _cleanup_loop(self):
+    def _cleanup_loop(self) -> None:
         """Очищает ресурсы цикла asyncio."""
         if self._loop and self._loop.is_running():
             pending = asyncio.all_tasks(self._loop)
@@ -80,12 +86,15 @@ class ProcessingWorker(QObject):
             logger.info("Рабочий поток: цикл asyncio очищен")
 
     @Slot(list)
-    def add_tasks(self, tasks):
+    def add_tasks(self, tasks: List[Any]) -> None:
         """
         Добавляет задачи в очередь.
 
         Args:
-            tasks (list): Список объектов AudioCleanupTask для добавления в очередь обработки
+            tasks: Список объектов AudioCleanupTask для добавления в очередь обработки.
+
+        Raises:
+            RuntimeError: Если asyncio цикл не инициализирован.
         """
         if not self._loop:
             logger.error("Рабочий поток: asyncio не инициализирован")
@@ -96,12 +105,15 @@ class ProcessingWorker(QObject):
             self._loop
         )
 
-    async def _add_tasks_async(self, tasks):
+    async def _add_tasks_async(self, tasks: List[Any]) -> None:
         """
         Асинхронно добавляет задачи в менеджер обработки.
 
         Args:
-            tasks (list): Список объектов AudioCleanupTask для добавления
+            tasks: Список объектов AudioCleanupTask для добавления.
+
+        Raises:
+            Exception: При ошибках добавления задачи.
         """
         for task in tasks:
             await self.processing_manager.add_video_task(task)
@@ -113,12 +125,15 @@ class ProcessingWorker(QObject):
             logger.info(f"Добавлена задача: {task.input_path} (ID: {task.task_id}, сегментов: {task.total_segments})")
 
     @Slot(str)
-    def pause_task(self, task_id: str):
+    def pause_task(self, task_id: str) -> None:
         """
         Приостанавливает выполнение задачи.
 
         Args:
-            task_id (str): Уникальный идентификатор задачи для приостановки
+            task_id: Уникальный идентификатор задачи для приостановки.
+
+        Raises:
+            RuntimeError: Если asyncio цикл не инициализирован.
         """
         if not self._loop:
             return
@@ -128,12 +143,12 @@ class ProcessingWorker(QObject):
             self._loop
         )
 
-    async def _pause_task_async(self, task_id: str):
+    async def _pause_task_async(self, task_id: str) -> None:
         """
         Асинхронно приостанавливает задачу.
 
         Args:
-            task_id (str): Уникальный идентификатор задачи для приостановки
+            task_id: Уникальный идентификатор задачи для приостановки.
         """
         success = await self.processing_manager.pause_task(task_id)
         if success:
@@ -141,12 +156,15 @@ class ProcessingWorker(QObject):
             logger.info(f"Задача приостановлена: {task_id}")
 
     @Slot(str)
-    def resume_task(self, task_id: str):
+    def resume_task(self, task_id: str) -> None:
         """
         Возобновляет выполнение приостановленной задачи.
 
         Args:
-            task_id (str): Уникальный идентификатор задачи для возобновления
+            task_id: Уникальный идентификатор задачи для возобновления.
+
+        Raises:
+            RuntimeError: Если asyncio цикл не инициализирован.
         """
         if not self._loop:
             return
@@ -156,12 +174,12 @@ class ProcessingWorker(QObject):
             self._loop
         )
 
-    async def _resume_task_async(self, task_id: str):
+    async def _resume_task_async(self, task_id: str) -> None:
         """
         Асинхронно возобновляет задачу.
 
         Args:
-            task_id (str): Уникальный идентификатор задачи для возобновления
+            task_id: Уникальный идентификатор задачи для возобновления.
         """
         success = await self.processing_manager.resume_task(task_id)
         if success:
@@ -172,12 +190,15 @@ class ProcessingWorker(QObject):
                 del self._last_progress[task_id]
 
     @Slot(list)
-    def cancel_tasks(self, task_ids: list):
+    def cancel_tasks(self, task_ids: List[str]) -> None:
         """
         Отменяет выполнение задач.
 
         Args:
-            task_ids (list): Список уникальных идентификаторов задач для отмены
+            task_ids: Список уникальных идентификаторов задач для отмены.
+
+        Raises:
+            RuntimeError: Если asyncio цикл не инициализирован.
         """
         if not self._loop:
             return
@@ -187,12 +208,12 @@ class ProcessingWorker(QObject):
             self._loop
         )
 
-    async def _cancel_tasks_async(self, task_ids: list):
+    async def _cancel_tasks_async(self, task_ids: List[str]) -> None:
         """
         Асинхронно отменяет задачи.
 
         Args:
-            task_ids (list): Список уникальных идентификаторов задач для отмены
+            task_ids: Список уникальных идентификаторов задач для отмены.
         """
         for task_id in task_ids:
             success = await self.processing_manager.cancel_task(task_id)
@@ -201,7 +222,63 @@ class ProcessingWorker(QObject):
                 self._emit_task_finished(task_id, False, "Отменено пользователем")
                 logger.info(f"Задача отменена: {task_id}")
 
-    async def _main_processing_loop(self):
+    @Slot()
+    def cancel_all_tasks(self) -> None:
+        """
+        Отменяет все активные задачи (вызывается из UI при отключении от сервера).
+        """
+        if not self._loop:
+            logger.error("Рабочий поток: asyncio не инициализирован")
+            return
+
+        asyncio.run_coroutine_threadsafe(
+            self._cancel_all_tasks_async(),
+            self._loop
+        )
+
+    async def _cancel_all_tasks_async(self) -> None:
+        """
+        Асинхронно отменяет ТОЛЬКО задачи, использующие удалённый обработчик.
+
+        Raises:
+            Exception: При ошибках отмены задач.
+        """
+        try:
+            cancelled_count = await self.processing_manager.cancel_remote_tasks()
+            logger.info(f"Отменено {cancelled_count} удалённых задач при отключении пользователя")
+        except Exception as e:
+            logger.error(f"Ошибка при отмене удалённых задач: {e}")
+
+    @Slot()
+    def restart_processing(self) -> None:
+        """Перезапускает обработку очереди."""
+        if not self._loop:
+            logger.error("Рабочий поток: asyncio не инициализирован")
+            return
+
+        asyncio.run_coroutine_threadsafe(
+            self._restart_processing_async(),
+            self._loop
+        )
+
+    async def _restart_processing_async(self) -> None:
+        """
+        Асинхронно перезапускает обработку очереди.
+
+        Raises:
+            Exception: При ошибках перезапуска.
+        """
+        try:
+            if not await self.processing_manager.is_processing_active():
+                logger.info("Перезапуск обработки очереди...")
+                asyncio.create_task(self.processing_manager.start_processing())
+                logger.info("Обработка очереди перезапущена")
+            else:
+                logger.debug("Обработка очереди уже активна")
+        except Exception as e:
+            logger.error(f"Ошибка при перезапуске обработки: {e}")
+
+    async def _main_processing_loop(self) -> None:
         """Главный цикл обработки задач. Запускает менеджер обработки."""
         logger.info("Рабочий поток: главный цикл запущен")
 
@@ -214,33 +291,33 @@ class ProcessingWorker(QObject):
         finally:
             logger.info("Рабочий поток: главный цикл завершен")
 
-    def _emit_task_started(self, task_id: str):
+    def _emit_task_started(self, task_id: str) -> None:
         """
         Отправляет сигнал о начале задачи, если он ещё не был отправлен.
 
         Args:
-            task_id (str): Уникальный идентификатор задачи
+            task_id: Уникальный идентификатор задачи.
         """
         if task_id not in self._started_emitted:
             self._started_emitted.add(task_id)
             self.task_started.emit(task_id)
             logger.debug(f"Отправлен сигнал task_started: {task_id}")
 
-    def _emit_task_finished(self, task_id: str, success: bool, message: str):
+    def _emit_task_finished(self, task_id: str, success: bool, message: str) -> None:
         """
         Отправляет сигнал о завершении задачи, если он ещё не был отправлен.
 
         Args:
-            task_id (str): Уникальный идентификатор задачи
-            success (bool): Флаг успешного выполнения задачи
-            message (str): Сообщение о результате выполнения
+            task_id: Уникальный идентификатор задачи.
+            success: Флаг успешного выполнения задачи.
+            message: Сообщение о результате выполнения.
         """
         if task_id not in self._finished_emitted:
             self._finished_emitted.add(task_id)
             self.task_finished.emit(task_id, success, message)
             logger.info(f"Отправлен сигнал task_finished: {task_id}, success={success}")
 
-    async def _monitor_tasks(self):
+    async def _monitor_tasks(self) -> None:
         """Мониторит статус и прогресс задач, отправляет соответствующие сигналы."""
         while self._running:
             try:
@@ -249,10 +326,8 @@ class ProcessingWorker(QObject):
                     status = task.get_status_sync()
                     current, total, percent = task.get_progress_sync()
 
-                    # Отправляем статус всегда (но логируем только изменения)
                     self.task_status_changed.emit(task.task_id, status.value)
 
-                    # Отправляем прогресс для PROCESSING и POST_PROCESSING
                     if status in (TaskStatus.PROCESSING, TaskStatus.POST_PROCESSING):
                         if status == TaskStatus.PROCESSING:
                             self._emit_task_started(task.task_id)
@@ -264,11 +339,8 @@ class ProcessingWorker(QObject):
                         self._emit_task_started(task.task_id)
                         logger.debug(f"Задача {task.task_id} возобновляется")
                     else:
-                        # Логируем только важные изменения статуса (не каждый цикл)
-                        if hasattr(self, '_last_status') and self._last_status.get(task.task_id) != status.value:
+                        if self._last_status.get(task.task_id) != status.value:
                             logger.debug(f"Задача {task.task_id} в статусе {status.value}")
-                            if not hasattr(self, '_last_status'):
-                                self._last_status = {}
                             self._last_status[task.task_id] = status.value
 
                 await asyncio.sleep(1)
@@ -278,7 +350,7 @@ class ProcessingWorker(QObject):
                 logger.error(f"Ошибка в мониторе задач: {e}")
                 await asyncio.sleep(1)
 
-    async def _update_stats(self):
+    async def _update_stats(self) -> None:
         """Периодически обновляет и отправляет статистику очереди."""
         while self._running:
             try:
@@ -291,7 +363,7 @@ class ProcessingWorker(QObject):
                 logger.error(f"Ошибка при обновлении статистики: {e}")
                 await asyncio.sleep(2)
 
-    def stop(self):
+    def stop(self) -> None:
         """Останавливает рабочий поток и освобождает ресурсы."""
         logger.info("Рабочий поток: остановка...")
         self._running = False
@@ -311,35 +383,40 @@ class ProcessingWorker(QObject):
 
             self._loop.call_soon_threadsafe(self._loop.stop)
 
-    async def _shutdown_async(self):
-        """Асинхронно завершает работу всех задач и отменяет корутины."""
+    async def _shutdown_async(self) -> None:
+        """
+        Асинхронно завершает работу всех задач и отменяет корутины.
+
+        Raises:
+            Exception: При ошибках завершения задач.
+        """
         logger.info("Рабочий поток: асинхронное завершение...")
 
         await self.processing_manager.stop_processing()
-        
+
         await asyncio.sleep(0.5)
-        
-        tasks_to_cancel = []
-        
+
+        tasks_to_cancel: List[asyncio.Task] = []
+
         if self._main_task and not self._main_task.done():
             tasks_to_cancel.append(self._main_task)
-        
+
         if self._monitor_task and not self._monitor_task.done():
             tasks_to_cancel.append(self._monitor_task)
-        
+
         if self._stats_task and not self._stats_task.done():
             tasks_to_cancel.append(self._stats_task)
-        
+
         if hasattr(self.processing_manager, '_active_tasks'):
             for task in self.processing_manager._active_tasks.values():
                 if not task.done():
                     tasks_to_cancel.append(task)
-        
+
         if tasks_to_cancel:
             logger.info(f"Отмена {len(tasks_to_cancel)} задач рабочего потока")
             for task in tasks_to_cancel:
                 task.cancel()
-            
+
             try:
                 await asyncio.wait_for(
                     asyncio.gather(*tasks_to_cancel, return_exceptions=True),
@@ -347,5 +424,5 @@ class ProcessingWorker(QObject):
                 )
             except asyncio.TimeoutError:
                 logger.warning("Таймаут при отмене задач рабочего потока")
-        
+
         logger.info("Рабочий поток: асинхронное завершение выполнено")

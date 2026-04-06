@@ -1,19 +1,24 @@
 """
 Логика главного экрана
 """
+
+from typing import Any
 from PySide6.QtWidgets import QMessageBox
 
 
 class MainScreenLogic:
     """Управляет отображением информационных диалогов на главном экране."""
 
-    def __init__(self, ui, parent):
+    def __init__(self, ui: Any, parent: Any) -> None:
         """
         Инициализирует логику главного экрана.
 
         Args:
-            ui: Объект UI главного окна
-            parent: Родительский объект
+            ui: Объект UI главного окна.
+            parent: Родительский объект.
+
+        Raises:
+            AttributeError: Если у UI объекта отсутствуют ожидаемые кнопки.
         """
         self.ui = ui
         self.parent = parent
@@ -21,8 +26,13 @@ class MainScreenLogic:
         self.ui.instructionBtn.clicked.connect(self.show_instruction)
         self.ui.licenseBtn.clicked.connect(self.show_license)
 
-    def show_about(self):
-        """Отображает информацию о проекте."""
+    def show_about(self) -> None:
+        """
+        Отображает информацию о проекте.
+
+        Raises:
+            Exception: При ошибках создания диалогового окна.
+        """
         QMessageBox.about(
             self.ui.centralwidget,
             "О проекте",
@@ -38,8 +48,13 @@ class MainScreenLogic:
             "<p>© 2024 SpeechEQ Team</p>"
         )
 
-    def show_instruction(self):
-        """Отображает инструкцию по использованию приложения."""
+    def show_instruction(self) -> None:
+        """
+        Отображает инструкцию по использованию приложения.
+
+        Raises:
+            Exception: При ошибках создания диалогового окна.
+        """
         QMessageBox.information(
             self.ui.centralwidget,
             "Инструкция",
@@ -56,8 +71,13 @@ class MainScreenLogic:
             "Обработанные файлы сохраняются в указаную папку с суффиксом _speecheq</p>"
         )
 
-    def show_license(self):
-        """Отображает текст лицензии MIT."""
+    def show_license(self) -> None:
+        """
+        Отображает текст лицензии MIT.
+
+        Raises:
+            Exception: При ошибках создания диалогового окна.
+        """
         QMessageBox.about(
             self.ui.centralwidget,
             "Лицензия",

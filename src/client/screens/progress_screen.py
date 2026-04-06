@@ -1,10 +1,12 @@
 """
 Логика экрана прогресса обработки.
 """
+
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any, Set, List, Optional
 from PySide6.QtCore import QTimer, Signal, QObject, Qt
-from PySide6.QtWidgets import QTableWidgetItem, QMessageBox, QHeaderView, QProgressBar, QWidget, QHBoxLayout, QLabel
+from PySide6.QtWidgets import QTableWidgetItem, QMessageBox, QHeaderView, QProgressBar, QWidget, QHBoxLayout, QLabel, QTableWidget
 from PySide6.QtGui import QDesktopServices, QColor
 import logging
 from .processing_screen import ProcessingScreenLogic
@@ -13,20 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class ProgressScreenLogic(QObject):
-    """
-    Управляет отображением прогресса обработки задач в таблице.
-
-    Отвечает за добавление задач, обновление их статуса и прогресса,
-    расчёт оставшегося времени и управление действиями пользователя
-    (пауза, возобновление, отмена, очистка).
-    """
+    """Управляет отображением прогресса обработки задач в таблице."""
 
     pause_selected_requested = Signal(list)
     resume_selected_requested = Signal(list)
     cancel_selected_requested = Signal(list)
     clear_finished_requested = Signal()
 
-    STATUS_COLORS = {
+    STATUS_COLORS: Dict[str, QColor] = {
         'completed': QColor(34, 197, 94),
         'failed': QColor(239, 68, 68),
         'cancelled': QColor(148, 163, 184),
@@ -37,24 +33,28 @@ class ProgressScreenLogic(QObject):
         'post_processing': QColor(6, 182, 212)
     }
 
-    NON_CANCELLABLE_STATUSES = {'post_processing', 'failed', 'completed'}
-    NON_PAUSABLE_STATUSES = {'post_processing', 'failed', 'completed', 'cancelled'}
+    NON_CANCELLABLE_STATUSES: Set[str] = {'post_processing', 'failed', 'completed'}
+    NON_PAUSABLE_STATUSES: Set[str] = {'post_processing', 'failed', 'completed', 'cancelled'}
 
-    def __init__(self, ui, parent, processing_manager):
+    def __init__(self, ui: Any, parent: Any, processing_manager: Any) -> None:
         """
-        Инициализация логики экрана прогресса.
+        Инициализирует логику экрана прогресса.
 
-        :param ui: Экземпляр пользовательского интерфейса
-        :param parent: Родительский виджет
-        :param processing_manager: Менеджер очереди задач для управления обработкой
+        Args:
+            ui: Объект UI главного окна.
+            parent: Родительский объект.
+            processing_manager: Менеджер обработки задач.
+
+        Raises:
+            Exception: При ошибках инициализации.
         """
         super().__init__(parent)
         self.ui = ui
         self.parent = parent
         self.processing_manager = processing_manager
 
-        self.tasks: dict = {}
-        self.task_rows: dict = {}
+        self.tasks: Dict[str, Dict[str, Any]] = {}
+        self.task_rows: Dict[str, int] = {}
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_progress_display)
         self.update_timer.start(1000)
@@ -62,15 +62,15 @@ class ProgressScreenLogic(QObject):
         self.connect_signals()
         self.setup_table_columns()
 
-        self.task_start_times: dict = {}
-        self._removed_tasks: set = set()
+        self.task_start_times: Dict[str, datetime] = {}
+        self._removed_tasks: Set[str] = set()
 
-        self.segment_times: dict = {}
+        self.segment_times: Dict[str, List[float]] = {}
         self.avg_segment_time: float = 0.0
         self.segment_time_samples: int = 0
 
-    def setup_table_columns(self):
-        """Настройка заголовков и размеров колонок таблицы задач."""
+    def setup_table_columns(self) -> None:
+        """Настраивает ширину и поведение колонок таблицы задач."""
         header = self.ui.taskTable.horizontalHeader()
         header.setStretchLastSection(False)
 
@@ -90,8 +90,8 @@ class ProgressScreenLogic(QObject):
         self.ui.taskTable.setAlternatingRowColors(True)
         header.setSectionsMovable(False)
 
-    def connect_signals(self):
-        """Подключение сигналов кнопок и таблицы к обработчикам событий."""
+    def connect_signals(self) -> None:
+        """Подключает сигналы UI к методам-обработчикам."""
         self.ui.pauseSelectedBtn.clicked.connect(self.on_pause_selected)
         self.ui.resumeSelectedBtn.clicked.connect(self.on_resume_selected)
         self.ui.cancelSelectedBtn.clicked.connect(self.on_cancel_selected)
@@ -105,10 +105,13 @@ class ProgressScreenLogic(QObject):
 
     def _get_progress_bar_color(self, status: str) -> str:
         """
-        Возвращает HEX-цвет для прогресс-бара в зависимости от статуса задачи.
+        Возвращает цвет для прогресс-бара в зависимости от статуса задачи.
 
-        :param status: Статус задачи
-        :return: HEX-строка цвета
+        Args:
+            status: Статус задачи.
+
+        Returns:
+            str: Цвет в формате HEX.
         """
         color_map = {
             'processing': '#3b82f6',
@@ -122,12 +125,16 @@ class ProgressScreenLogic(QObject):
         }
         return color_map.get(status, '#3b82f6')
 
-    def _update_progress_bar_style(self, progress_bar: QProgressBar, status: str):
+    def _update_progress_bar_style(self, progress_bar: QProgressBar, status: str) -> None:
         """
-        Применяет стиль прогресс-бару в соответствии со статусом задачи.
+        Обновляет стиль прогресс-бара в зависимости от статуса.
 
-        :param progress_bar: Экземпляр QProgressBar для стилизации
-        :param status: Статус задачи для определения цвета
+        Args:
+            progress_bar: Прогресс-бар для обновления.
+            status: Статус задачи.
+
+        Raises:
+            AttributeError: Если progress_bar не имеет метода setStyleSheet.
         """
         color = self._get_progress_bar_color(status)
         progress_bar.setStyleSheet(f"""
@@ -143,14 +150,18 @@ class ProgressScreenLogic(QObject):
             }}
         """)
 
-    def add_task(self, task_id: str, input_path: str, output_path: str, total_segments: int = 0):
+    def add_task(self, task_id: str, input_path: str, output_path: str, total_segments: int = 0) -> None:
         """
-        Добавление новой задачи в таблицу прогресса.
+        Добавляет задачу в таблицу прогресса.
 
-        :param task_id: Уникальный идентификатор задачи
-        :param input_path: Путь к исходному файлу
-        :param output_path: Путь для сохранения результата
-        :param total_segments: Общее количество сегментов для обработки
+        Args:
+            task_id: Идентификатор задачи.
+            input_path: Путь к входному файлу.
+            output_path: Путь к выходному файлу.
+            total_segments: Общее количество сегментов.
+
+        Raises:
+            Exception: При ошибках добавления строки в таблицу.
         """
         if task_id in self.tasks:
             return
@@ -226,18 +237,23 @@ class ProgressScreenLogic(QObject):
             'progress_bar': progress_bar,
             'progress_label': label,
             'last_segment_time': None,
-            'segment_times': []
+            'segment_times': [],
+            'error_message': ''
         }
 
         self._update_progress_bar_style(progress_bar, 'pending')
         self.ui.taskTable.resizeRowsToContents()
 
-    def update_task_status(self, task_id: str, status: str):
+    def update_task_status(self, task_id: str, status: str) -> None:
         """
-        Обновление статуса задачи в таблице.
+        Обновляет статус задачи в таблице.
 
-        :param task_id: Идентификатор задачи
-        :param status: Новый статус задачи
+        Args:
+            task_id: Идентификатор задачи.
+            status: Новый статус.
+
+        Raises:
+            KeyError: Если задача не найдена в таблице.
         """
         if task_id in self._removed_tasks:
             return
@@ -288,13 +304,17 @@ class ProgressScreenLogic(QObject):
         self.on_selection_changed()
         self.update_progress_display()
 
-    def update_task_progress(self, task_id: str, current: int, total: int):
+    def update_task_progress(self, task_id: str, current: int, total: int) -> None:
         """
-        Обновление прогресса выполнения задачи.
+        Обновляет прогресс задачи в таблице.
 
-        :param task_id: Идентификатор задачи
-        :param current: Текущее количество обработанных сегментов
-        :param total: Общее количество сегментов
+        Args:
+            task_id: Идентификатор задачи.
+            current: Текущее количество обработанных сегментов.
+            total: Общее количество сегментов.
+
+        Raises:
+            KeyError: Если задача не найдена в таблице.
         """
         if task_id in self._removed_tasks:
             return
@@ -331,19 +351,19 @@ class ProgressScreenLogic(QObject):
             if label:
                 label.setText(f"{current}/{task_data['total']}")
 
-            name_item = self.ui.taskTable.item(task_data['row'], 0)
-            if name_item:
-                name_item.setToolTip(f"Прогресс: {current}/{task_data['total']} сегментов")
-
             self.update_progress_display()
 
-    def update_task_duration(self, task_id: str, duration: float, formatted_duration: str):
+    def update_task_duration(self, task_id: str, duration: float, formatted_duration: str) -> None:
         """
-        Обновление отображения длительности задачи.
+        Обновляет длительность задачи в таблице.
 
-        :param task_id: Идентификатор задачи
-        :param duration: Длительность в секундах
-        :param formatted_duration: Отформатированная строка длительности
+        Args:
+            task_id: Идентификатор задачи.
+            duration: Длительность в секундах.
+            formatted_duration: Отформатированная длительность.
+
+        Raises:
+            KeyError: Если задача не найдена в таблице.
         """
         if task_id in self._removed_tasks:
             return
@@ -360,21 +380,23 @@ class ProgressScreenLogic(QObject):
         if duration_item:
             duration_item.setText(formatted_duration)
 
-    def _set_status_color(self, item, status: str):
+    def _set_status_color(self, item: QTableWidgetItem, status: str) -> None:
         """
-        Установка цвета текста элемента в зависимости от статуса.
+        Устанавливает цвет текста для статуса задачи.
 
-        :param item: QTableWidgetItem для изменения цвета
-        :param status: Статус задачи
+        Args:
+            item: Элемент таблицы для изменения.
+            status: Статус задачи.
         """
         color = self.STATUS_COLORS.get(status, QColor(0, 0, 0))
         item.setForeground(color)
 
     def _calculate_remaining_time(self) -> str:
         """
-        Расчёт оставшегося времени обработки на основе статистики сегментов.
+        Рассчитывает оставшееся время обработки.
 
-        :return: Отформатированная строка оставшегося времени
+        Returns:
+            str: Отформатированное оставшееся время или "--" если нет активных задач.
         """
         remaining_segments = 0
         processing_tasks_count = 0
@@ -398,7 +420,6 @@ class ProgressScreenLogic(QObject):
             for task_data in self.tasks.values():
                 if task_data['segment_times']:
                     segment_times.extend(task_data['segment_times'])
-
             if segment_times:
                 avg_time = sum(segment_times) / len(segment_times)
             else:
@@ -422,8 +443,8 @@ class ProgressScreenLogic(QObject):
             minutes = int((remaining_seconds % 3600) / 60)
             return f"{hours} ч {minutes} мин"
 
-    def update_progress_display(self):
-        """Обновление всех индикаторов прогресса и статистики на экране."""
+    def update_progress_display(self) -> None:
+        """Обновляет отображение общего прогресса и статистики."""
         if not self.tasks:
             self.ui.filesProgress.setValue(0)
             self.ui.totalSegmentsProgress.setValue(0)
@@ -487,8 +508,8 @@ class ProgressScreenLogic(QObject):
         stats = f"Активных: {active_tasks}, Приостановлено: {paused_tasks}, Очередь: {queue_tasks}, Ошибок: {failed_tasks}"
         self.ui.statsValueLabel.setText(stats)
 
-    def on_selection_changed(self):
-        """Обновление состояния кнопок управления в зависимости от выбранных задач."""
+    def on_selection_changed(self) -> None:
+        """Обрабатывает изменение выделения в таблице задач."""
         selected_rows = set()
         for item in self.ui.taskTable.selectedItems():
             selected_rows.add(item.row())
@@ -515,8 +536,8 @@ class ProgressScreenLogic(QObject):
         self.ui.resumeSelectedBtn.setEnabled(has_resumable)
         self.ui.cancelSelectedBtn.setEnabled(has_cancellable)
 
-    def on_pause_selected(self):
-        """Обработчик кнопки приостановки выбранных задач с подтверждением пользователя."""
+    def on_pause_selected(self) -> None:
+        """Обрабатывает нажатие кнопки приостановки выбранных задач."""
         selected_rows = set()
         for item in self.ui.taskTable.selectedItems():
             selected_rows.add(item.row())
@@ -547,17 +568,15 @@ class ProgressScreenLogic(QObject):
             reply = QMessageBox.question(
                 self.ui.centralwidget,
                 "Подтверждение",
-                f"Приостановить следующие задачи?\n\n{task_list}\n\n"
-                f"Приостановленные задачи будут пропущены, и обработка перейдёт к следующим по приоритету.",
+                f"Приостановить следующие задачи?\n\n{task_list}",
                 QMessageBox.Yes | QMessageBox.No
             )
 
             if reply == QMessageBox.Yes:
                 self.pause_selected_requested.emit(task_ids_to_pause)
-                logger.info(f"Запрошена приостановка задач: {task_ids_to_pause}")
 
-    def on_resume_selected(self):
-        """Обработчик кнопки возобновления выбранных приостановленных задач."""
+    def on_resume_selected(self) -> None:
+        """Обрабатывает нажатие кнопки возобновления выбранных задач."""
         selected_rows = set()
         for item in self.ui.taskTable.selectedItems():
             selected_rows.add(item.row())
@@ -594,10 +613,9 @@ class ProgressScreenLogic(QObject):
 
             if reply == QMessageBox.Yes:
                 self.resume_selected_requested.emit(task_ids_to_resume)
-                logger.info(f"Запрошено возобновление задач: {task_ids_to_resume}")
 
-    def on_cancel_selected(self):
-        """Обработчик кнопки отмены выбранных задач с подтверждением пользователя."""
+    def on_cancel_selected(self) -> None:
+        """Обрабатывает нажатие кнопки отмены выбранных задач."""
         selected_rows = set()
         for item in self.ui.taskTable.selectedItems():
             selected_rows.add(item.row())
@@ -628,17 +646,15 @@ class ProgressScreenLogic(QObject):
             reply = QMessageBox.question(
                 self.ui.centralwidget,
                 "Подтверждение",
-                f"Отменить следующие задачи?\n\n{task_list}\n\n"
-                f"Отменённые задачи нельзя будет возобновить или обработать повторно.",
+                f"Отменить следующие задачи?\n\n{task_list}\n\nОтменённые задачи нельзя будет возобновить.",
                 QMessageBox.Yes | QMessageBox.No
             )
 
             if reply == QMessageBox.Yes:
                 self.cancel_selected_requested.emit(task_ids_to_cancel)
-                logger.info(f"Запрошена отмена задач: {task_ids_to_cancel}")
 
-    def on_clear_finished(self):
-        """Обработчик кнопки очистки завершённых, ошибочных и отменённых задач из таблицы."""
+    def on_clear_finished(self) -> None:
+        """Обрабатывает нажатие кнопки очистки завершённых задач."""
         finished_tasks = []
         failed_tasks = []
         cancelled_tasks = []
@@ -676,14 +692,17 @@ class ProgressScreenLogic(QObject):
         if reply == QMessageBox.Yes:
             self.clear_finished_requested.emit()
             self._remove_tasks_from_ui(finished_tasks + failed_tasks + cancelled_tasks)
+            self.clear_error()
+            self.update_progress_display()
             logger.info(f"Очищено задач: завершённых={len(finished_tasks)}, "
                        f"ошибочных={len(failed_tasks)}, отменённых={len(cancelled_tasks)}")
 
-    def _remove_tasks_from_ui(self, task_ids_to_remove: list):
+    def _remove_tasks_from_ui(self, task_ids_to_remove: List[str]) -> None:
         """
-        Удаление задач из таблицы интерфейса и внутренних структур.
+        Удаляет задачи из UI.
 
-        :param task_ids_to_remove: Список идентификаторов задач для удаления
+        Args:
+            task_ids_to_remove: Список идентификаторов задач для удаления.
         """
         for task_id in task_ids_to_remove:
             self._removed_tasks.add(task_id)
@@ -709,11 +728,12 @@ class ProgressScreenLogic(QObject):
                 task_data['row'] = idx
                 self.task_rows[task_id] = idx
 
-    def on_task_double_clicked(self, item):
+    def on_task_double_clicked(self, item: QTableWidgetItem) -> None:
         """
-        Обработчик двойного клика по задаче — открытие папки с результатом.
+        Обрабатывает двойной клик по задаче (открывает папку с результатом).
 
-        :param item: Элемент таблицы, по которому выполнен клик
+        Args:
+            item: Элемент таблицы, по которому был двойной клик.
         """
         row = item.row()
         for task_id, task_data in self.tasks.items():
@@ -723,8 +743,8 @@ class ProgressScreenLogic(QObject):
                     QDesktopServices.openUrl(Path(output_path).parent.as_posix())
                 break
 
-    def on_open_log(self):
-        """Обработчик кнопки открытия лог-файла или папки с логами."""
+    def on_open_log(self) -> None:
+        """Открывает файл лога или папку с логами."""
         log_dir = Path("logs")
         log_dir.mkdir(exist_ok=True)
         log_file = Path("speecheq_debug.log")
@@ -760,15 +780,15 @@ class ProgressScreenLogic(QObject):
                 f"Вы можете открыть его в любом текстовом редакторе."
             )
 
-    def show_error(self, error_msg: str):
+    def show_error(self, error_msg: str) -> None:
         """
-        Отображение сообщения об ошибке в интерфейсе и диалоговом окне.
+        Показывает сообщение об ошибке в интерфейсе.
 
-        :param error_msg: Текст сообщения об ошибке
+        Args:
+            error_msg: Текст сообщения об ошибке.
         """
         self.ui.errorNotificationLabel.setText(f"Ошибка: {error_msg}")
-        QMessageBox.warning(self.ui.centralwidget, "Ошибка обработки", error_msg)
 
-    def clear_error(self):
-        """Очистка отображаемого сообщения об ошибке."""
+    def clear_error(self) -> None:
+        """Очищает отображаемое сообщение об ошибке."""
         self.ui.errorNotificationLabel.setText("")
