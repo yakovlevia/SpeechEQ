@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """
-Точка входа для запуска gRPC сервера.
-Создает AudioProcessingLogic один раз и передает его в сервер.
+Точка входа для запуска gRPC-сервера обработки аудио.
+
+Инициализирует пайплайн обработки (DSP-методы) один раз при старте
+и передаёт готовый обработчик в gRPC-сервер для многопоточного использования.
 """
 import asyncio
 import logging
@@ -8,6 +11,7 @@ import sys
 import argparse
 from pathlib import Path
 
+# Настройка путей для импортов
 root_dir = Path(__file__).parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
@@ -26,118 +30,134 @@ from processing.dsp import (
     HumRemovalDSP,
     DeEsserDSP,
     SpeechEQDSP,
-    LoudnessNormalizationDSP
+    LoudnessNormalizationDSP,
 )
 
 
-def setup_logging(debug: bool = False):
-    """Настройка логирования"""
+def setup_logging(debug: bool = False) -> None:
+    """Настраивает систему логирования с выводом в консоль и файл.
+
+    Создаёт обработчики для stdout и файла серверного лога,
+    устанавливает уровень детализации и формат сообщений.
+
+    Args:
+        debug: Если True — устанавливает уровень DEBUG, иначе INFO.
+    """
     log_level = logging.DEBUG if debug else logging.INFO
-    
-    # Создаем форматтер
+
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    
-    # Хендлер для консоли
+
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
-    
-    # Хендлер для файла
+
     log_dir = ServerConfig.LOG_DIR
     log_dir.mkdir(parents=True, exist_ok=True)
-    file_handler = logging.FileHandler(
-        log_dir / "server.log",
-        encoding='utf-8'
-    )
+    file_handler = logging.FileHandler(log_dir / "server.log", encoding="utf-8")
     file_handler.setFormatter(formatter)
-    
-    # Настраиваем корневой логгер
+
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
-    
-    # Уменьшаем уровень логирования для grpc
+
+    # Снижаем детализацию логов gRPC — они слишком шумные
     logging.getLogger("grpc").setLevel(logging.WARNING)
 
 
-def setup_processing_pipeline():
-    """
-    Настройка пайплайна обработки аудио.
-    Создает цепочку DSP-методов для улучшения речи.
+def setup_processing_pipeline() -> tuple[LocalAudioHandler, AudioProcessingLogic]:
+    """Создаёт и настраивает пайплайн обработки аудио.
+
+    Формирует цепочку DSP-методов в строгом порядке:
+    1. Удаление сетевого гула (50/60 Гц)
+    2. Шумоподавление
+    3. Де-эссер (подавление шипящих)
+    4. Речевой эквалайзер
+    5. Нормализация громкости (финальный этап)
+
+    Порядок критичен: например, нормализация должна идти последней,
+    чтобы не исказить результаты предыдущих этапов.
+
+    Returns:
+        tuple: (LocalAudioHandler, AudioProcessingLogic) — готовый
+               обработчик и его внутренняя логика.
     """
     logger = logging.getLogger(__name__)
-    logger.info("Инициализация пайплайна обработки аудио на сервере")
-    
-    # Создание цепочки DSP-методов
+    logger.info("Инициализация пайплайна обработки")
+
+    # Порядок методов важен — см. docstring функции
     dsp_methods = [
-        HumRemovalDSP(),           # Удаление гула 50/60 Гц
-        NoiseReductionDSP(),       # Шумоподавление
-        DeEsserDSP(),              # Де-эссер (удаление шипящих)
-        SpeechEQDSP(),             # Эквализация под речь
-        LoudnessNormalizationDSP(), # Нормализация громкости
+        HumRemovalDSP(),              # Удаление гула 50/60 Гц
+        NoiseReductionDSP(),          # Шумоподавление
+        DeEsserDSP(),                 # Подавление шипящих звуков
+        SpeechEQDSP(),                # Эквализация под речевой диапазон
+        LoudnessNormalizationDSP(),   # Нормализация громкости (последний этап)
     ]
-    
-    # Логика обработки с DSP-методами
+
     processing_logic = AudioProcessingLogic(
         dsp_methods=dsp_methods,
         ml_methods=[]  # ML-методы пока не используются
     )
-    
+
     audio_handler = LocalAudioHandler(processing_logic=processing_logic)
-    logger.info(f"Пайплайн инициализирован: {[method.__class__.__name__ for method in dsp_methods]}")
+    logger.info(f"Пайплайн готов: {[m.__class__.__name__ for m in dsp_methods]}")
     return audio_handler, processing_logic
 
 
-def main():
-    """Основная функция"""
+def main() -> int:
+    """Точка входа в приложение.
+
+    Парсит аргументы командной строки, инициализирует логирование,
+    создаёт обработчик аудио и запускает gRPC-сервер.
+
+    Returns:
+        int: Код завершения (0 — успех, 1 — ошибка).
+    """
     parser = argparse.ArgumentParser(description="SpeechEQ gRPC Server")
     parser.add_argument(
         "--host",
         type=str,
-        default=ServerConfig.DEFAULT_HOST,
-        help=f"Хост для прослушивания (по умолчанию: {ServerConfig.DEFAULT_HOST})"
+        default=None,
+        help=f"Хост для прослушивания (по умолчанию: {ServerConfig.DEFAULT_HOST})",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=ServerConfig.DEFAULT_PORT,
-        help=f"Порт для прослушивания (по умолчанию: {ServerConfig.DEFAULT_PORT})"
+        default=None,
+        help=f"Порт для прослушивания (по умолчанию: {ServerConfig.DEFAULT_PORT})",
     )
     parser.add_argument(
         "--workers",
         type=int,
-        default=ServerConfig.DEFAULT_MAX_WORKERS,
-        help=f"Максимальное количество рабочих потоков (по умолчанию: {ServerConfig.DEFAULT_MAX_WORKERS})"
+        default=None,
+        help=f"Макс. количество потоков (по умолчанию: {ServerConfig.DEFAULT_MAX_WORKERS})",
     )
     parser.add_argument(
         "--debug",
         action="store_true",
-        help="Включить режим отладки (больше логов)"
+        help="Включить режим отладки (подробные логи)",
     )
-    
-    args = parser.parse_args()
 
+    args = parser.parse_args()
     setup_logging(args.debug)
 
     logger = logging.getLogger(__name__)
-    config = ServerConfig.from_env()
 
-    if args.host != ServerConfig.DEFAULT_HOST:
+    # Загрузка конфигурации: env-переменные + переопределение из CLI
+    config = ServerConfig.from_env()
+    if args.host is not None:
         config.host = args.host
-    if args.port != ServerConfig.DEFAULT_PORT:
+    if args.port is not None:
         config.port = args.port
-    if args.workers != ServerConfig.DEFAULT_MAX_WORKERS:
+    if args.workers is not None:
         config.max_workers = args.workers
 
-    logger.info("=" * 60)
     logger.info("Инициализация обработчика аудио")
-    audio_handler, processing_logic = setup_processing_pipeline()
-    logger.info("=" * 60)
+    audio_handler, _ = setup_processing_pipeline()
 
-    logger.info(f"Запуск сервера с конфигурацией: {config}")
-    
+    logger.info(f"Запуск сервера: {config}")
+
     try:
         asyncio.run(serve(config, audio_handler))
     except KeyboardInterrupt:

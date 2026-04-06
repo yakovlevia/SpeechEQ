@@ -75,7 +75,7 @@ class Ui_MainWindow(object):
 "              background-color: #e2e8f0;\n"
 "          }\n"
 "          \n"
-"          QPushButton#startProcessingBtn, QPushButton#startLocalBtn, QPushButton#connectBtn {\n"
+"          QPushButton#actionBtn {\n"
 "              background-color: #3b82f6;\n"
 "              border: 1.5px solid #3b82f6;\n"
 "              color: white;\n"
@@ -83,17 +83,17 @@ class Ui_MainWindow(object):
 "              font-weight: bold;\n"
 "          }\n"
 "          \n"
-"          QPushButton#startProcessingBtn:hover, QPushButton#startLocalBtn:hover, QPushButton#connectBtn:hover {\n"
+"          QPushButton#actionBtn:hover {\n"
 "              background-color: #2563eb;\n"
 "              border-color: #2563eb;\n"
 "          }\n"
 "          \n"
 "          QPushButton#clearQueueBtn, QPushButton#cancelSelectedBtn {\n"
-"        "
-                        "      background-color: #ef4444;\n"
+"              background-color: #ef4444;\n"
 "              border: 1.5px solid #ef4444;\n"
 "              color: white;\n"
-"              font-size: 14px;\n"
+"              fo"
+                        "nt-size: 14px;\n"
 "              font-weight: bold;\n"
 "          }\n"
 "          \n"
@@ -118,12 +118,12 @@ class Ui_MainWindow(object):
 "          \n"
 "          /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f QLineEdit */\n"
 "          QLineEdit {\n"
-"              border: 1px solid #cbd5e1;"
-                        "\n"
+"              border: 1px solid #cbd5e1;\n"
 "              border-radius: 6px;\n"
 "              padding: 8px 10px;\n"
 "              background-color: #ffffff;\n"
-"              selection-background-color: #3b82f6;\n"
+"       "
+                        "       selection-background-color: #3b82f6;\n"
 "              font-size: 12px;\n"
 "              color: #1f2d3d;\n"
 "          }\n"
@@ -150,12 +150,12 @@ class Ui_MainWindow(object):
 "              padding: 5px;\n"
 "          }\n"
 "          \n"
-"   "
-                        "       QListWidget::item:selected {\n"
+"          QListWidget::item:selected {\n"
 "              background-color: #3b82f6;\n"
 "              color: #ffffff;\n"
 "          }\n"
-"          \n"
+""
+                        "          \n"
 "          QListWidget::item:hover {\n"
 "              background-color: #f1f5f9;\n"
 "              color: #1f2d3d;\n"
@@ -181,11 +181,11 @@ class Ui_MainWindow(object):
 "          }\n"
 "          \n"
 "          QTableWidget::item:selected,\n"
-"          QTableWidget::item:selected:act"
-                        "ive,\n"
+"          QTableWidget::item:selected:active,\n"
 "          QTableWidget::item:selected:focus,\n"
 "          QTableWidget::item:selected:!active {\n"
-"              background-color: #3b82f6 !important;\n"
+"              background-"
+                        "color: #3b82f6 !important;\n"
 "              color: #ffffff !important;\n"
 "          }\n"
 "          \n"
@@ -211,12 +211,12 @@ class Ui_MainWindow(object):
 "          /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f QProgressBar */\n"
 "          QProgressBar {\n"
 "              border: 1px solid #cbd5e1;\n"
-"              background-color: #"
-                        "f1f5f9;\n"
+"              background-color: #f1f5f9;\n"
 "              border-radius: 4px;\n"
 "              text-align: center;\n"
 "              color: #1f2d3d;\n"
-"              height: 20px;\n"
+"             "
+                        " height: 20px;\n"
 "              font-size: 11px;\n"
 "          }\n"
 "          \n"
@@ -243,16 +243,15 @@ class Ui_MainWindow(object):
 "          QComboBox:focus, QComboBox:open {\n"
 "              border-color: #3b82f6;\n"
 "              outline: none;\n"
-" "
-                        "         }\n"
+"          }\n"
 "          \n"
 "          QComboBox::drop-down {\n"
 "              border: none;\n"
 "              width: 28px;\n"
-"              background: transparent;\n"
+"     "
+                        "         background: transparent;\n"
 "          }\n"
 "          \n"
-"          /* \u0412\u044b\u043f\u0430\u0434\u0430\u044e\u0449\u0438\u0439 \u0441\u043f\u0438\u0441\u043e\u043a: \u0442\u043e\u043b\u044c\u043a\u043e \u043a\u0440\u0430\u0441\u043e\u0442\u0430, \u0431\u0435\u0437 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043d\u0438\u044f \u043f\u043e \u0448\u0438\u0440\u0438\u043d\u0435 */\n"
 "          QComboBox QAbstractItemView {\n"
 "              border: 1px solid #cbd5e1;\n"
 "              border-radius: 8px;\n"
@@ -266,8 +265,7 @@ class Ui_MainWindow(object):
 "          \n"
 "          QComboBox QAbstractItemView::item {\n"
 "              padding: 8px 10px;\n"
-"   "
-                        "           min-height: 22px;\n"
+"              min-height: 22px;\n"
 "              margin: 2px;\n"
 "              border-radius: 6px;\n"
 "              background-color: transparent;\n"
@@ -280,7 +278,8 @@ class Ui_MainWindow(object):
 "          }\n"
 "          \n"
 "          QComboBox QAbstractItemView::item:selected {\n"
-"              background-color: #3b82f6;\n"
+"              background"
+                        "-color: #3b82f6;\n"
 "              color: #ffffff;\n"
 "          }\n"
 "          \n"
@@ -289,10 +288,8 @@ class Ui_MainWindow(object):
 "              color: #ffffff;\n"
 "          }\n"
 "          \n"
-"          /* \u0421\u043a\u0440\u043e\u043b\u043b\u0431\u0430\u0440 \u0432\u043d\u0443\u0442\u0440\u0438 \u0432\u044b\u043f\u0430\u0434\u0430\u044e\u0449\u0435\u0433\u043e \u0441\u043f\u0438\u0441\u043a\u0430 */\n"
 "          QComboBox QScrollBar:vertical {\n"
-"              background: transparent"
-                        ";\n"
+"              background: transparent;\n"
 "              width: 10px;\n"
 "              margin: 4px 4px 4px 0px;\n"
 "              border: none;\n"
@@ -312,7 +309,8 @@ class Ui_MainWindow(object):
 "          QComboBox QScrollBar::sub-line:vertical {\n"
 "              height: 0px;\n"
 "              border: none;\n"
-"              background: transparent;\n"
+"              background: transparen"
+                        "t;\n"
 "          }\n"
 "          \n"
 "          QComboBox QScrollBar::add-page:vertical,\n"
@@ -320,9 +318,8 @@ class Ui_MainWindow(object):
 "              background: transparent;\n"
 "          }\n"
 "          \n"
-"          /* ===== \u0421\u0422\u0418\u041b\u0418 \u0414\u041b\u042f QSpinBox / QTimeEdit / QDateTimeEdit ===== */\n"
-"  "
-                        "        QSpinBox, QTimeEdit, QDateTimeEdit {\n"
+"          /* ===== \u0421\u0422\u0418\u041b\u0418 \u0414\u041b\u042f QSpinBox ===== */\n"
+"          QSpinBox {\n"
 "              border: 1px solid #cbd5e1;\n"
 "              border-radius: 6px;\n"
 "              padding: 0 26px 0 10px;\n"
@@ -333,22 +330,22 @@ class Ui_MainWindow(object):
 "              color: #1f2d3d;\n"
 "          }\n"
 "          \n"
-"          QSpinBox:focus, QTimeEdit:focus, QDateTimeEdit:focus {\n"
+"          QSpinBox:focus {\n"
 "              border-color: #3b82f6;\n"
 "              outline: none;\n"
 "          }\n"
 "          \n"
-"          QSpinBox::up-button, QTimeEdit::up-button, QDateTimeEdit::up-button {\n"
+"          QSpinBox::up-button {\n"
 "              subcontrol-origin: border;\n"
 "              subcontrol-position: top right;\n"
 "              width: 22px;\n"
-"              height: 18px;\n"
+"              height: 18px;"
+                        "\n"
 "          }\n"
 "          \n"
-"          QSpinBox::down-button, QTimeEdit::down-button, QDateTimeEdit::down-button {\n"
+"          QSpinBox::down-button {\n"
 "              subcontrol-origin: border;\n"
-"              subcontrol-position"
-                        ": bottom right;\n"
+"              subcontrol-position: bottom right;\n"
 "              width: 22px;\n"
 "              height: 18px;\n"
 "          }\n"
@@ -375,12 +372,12 @@ class Ui_MainWindow(object):
 "          }\n"
 "          \n"
 "          QSlider::sub-page:horizontal {\n"
-"              background: #3b82f6;\n"
+"          "
+                        "    background: #3b82f6;\n"
 "              border-radius: 3px;\n"
 "          }\n"
 "          \n"
-"          /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b"
-                        "\u044f QCheckBox */\n"
+"          /* \u0421\u0442\u0438\u043b\u0438 \u0434\u043b\u044f QCheckBox */\n"
 "          QCheckBox {\n"
 "              spacing: 10px;\n"
 "              color: #1f2d3d;\n"
@@ -408,13 +405,13 @@ class Ui_MainWindow(object):
 "              border-color: #94a3b8;\n"
 "          }\n"
 "          \n"
-"          QCheckBox::indicator:disabled {\n"
+"          QCh"
+                        "eckBox::indicator:disabled {\n"
 "              background-color: #f1f5f9;\n"
 "              border-color: #e2e8f0;\n"
 "          }\n"
 "          \n"
-"    "
-                        "      /* \u041d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c */\n"
+"          /* \u041d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u043e\u043d\u043d\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c */\n"
 "          #navWidget {\n"
 "              background-color: #ffffff;\n"
 "              border-top: 1px solid #e2e8f0;\n"
@@ -582,20 +579,6 @@ class Ui_MainWindow(object):
 
         self.gridLayout.addWidget(self.localModeInfoLabel, 0, 0, 1, 2)
 
-        self.startLocalBtn = QPushButton(self.localModeWidget)
-        self.startLocalBtn.setObjectName(u"startLocalBtn")
-        self.startLocalBtn.setFont(font)
-        self.startLocalBtn.setMinimumSize(QSize(0, 50))
-
-        self.gridLayout.addWidget(self.startLocalBtn, 1, 0, 1, 2)
-
-        self.localStatusLabel = QLabel(self.localModeWidget)
-        self.localStatusLabel.setObjectName(u"localStatusLabel")
-        self.localStatusLabel.setFont(font2)
-        self.localStatusLabel.setStyleSheet(u"color: #64748b;")
-
-        self.gridLayout.addWidget(self.localStatusLabel, 2, 0, 1, 2)
-
 
         self.verticalLayout_3.addWidget(self.localModeWidget)
 
@@ -632,33 +615,26 @@ class Ui_MainWindow(object):
         self.remotePortSpinBox.setMinimumSize(QSize(0, 40))
         self.remotePortSpinBox.setMinimum(1024)
         self.remotePortSpinBox.setMaximum(65535)
-        self.remotePortSpinBox.setValue(8080)
+        self.remotePortSpinBox.setValue(50051)
 
         self.gridLayout_2.addWidget(self.remotePortSpinBox, 1, 1, 1, 1)
 
-        self.connectBtn = QPushButton(self.remoteModeWidget)
-        self.connectBtn.setObjectName(u"connectBtn")
-        self.connectBtn.setFont(font)
-        self.connectBtn.setMinimumSize(QSize(0, 50))
-
-        self.gridLayout_2.addWidget(self.connectBtn, 2, 0, 1, 2)
-
-        self.remoteStatusLabel = QLabel(self.remoteModeWidget)
-        self.remoteStatusLabel.setObjectName(u"remoteStatusLabel")
-        self.remoteStatusLabel.setFont(font2)
-        self.remoteStatusLabel.setStyleSheet(u"color: #64748b;")
-
-        self.gridLayout_2.addWidget(self.remoteStatusLabel, 3, 0, 1, 2)
-
-        self.serverVersionLabel = QLabel(self.remoteModeWidget)
-        self.serverVersionLabel.setObjectName(u"serverVersionLabel")
-        self.serverVersionLabel.setFont(font1)
-        self.serverVersionLabel.setStyleSheet(u"color: #22c55e;")
-
-        self.gridLayout_2.addWidget(self.serverVersionLabel, 4, 0, 1, 2)
-
 
         self.verticalLayout_3.addWidget(self.remoteModeWidget)
+
+        self.actionBtn = QPushButton(self.modeGroupBox)
+        self.actionBtn.setObjectName(u"actionBtn")
+        self.actionBtn.setFont(font)
+        self.actionBtn.setMinimumSize(QSize(0, 50))
+
+        self.verticalLayout_3.addWidget(self.actionBtn)
+
+        self.connectionStatusLabel = QLabel(self.modeGroupBox)
+        self.connectionStatusLabel.setObjectName(u"connectionStatusLabel")
+        self.connectionStatusLabel.setFont(font2)
+        self.connectionStatusLabel.setStyleSheet(u"color: #64748b; padding: 5px; font-weight: bold;")
+
+        self.verticalLayout_3.addWidget(self.connectionStatusLabel)
 
         self.errorLabel = QLabel(self.modeGroupBox)
         self.errorLabel.setObjectName(u"errorLabel")
@@ -1224,14 +1200,11 @@ class Ui_MainWindow(object):
         self.modeComboBox.setItemText(1, QCoreApplication.translate("MainWindow", u"\u0423\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 \u0441\u0435\u0440\u0432\u0435\u0440", None))
 
         self.localModeInfoLabel.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u043d\u0430 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u043c \u043a\u043e\u043c\u043f\u044c\u044e\u0442\u0435\u0440\u0435 \u0431\u0435\u0437 \u0441\u0435\u0440\u0432\u0435\u0440\u0430", None))
-        self.startLocalBtn.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c", None))
-        self.localStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441: \u043d\u0435 \u0437\u0430\u043f\u0443\u0449\u0435\u043d", None))
         self.hostLabel.setText(QCoreApplication.translate("MainWindow", u"\u0410\u0434\u0440\u0435\u0441 / \u0445\u043e\u0441\u0442:", None))
         self.hostLineEdit.setText(QCoreApplication.translate("MainWindow", u"localhost", None))
         self.portLabel.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0440\u0442:", None))
-        self.connectBtn.setText(QCoreApplication.translate("MainWindow", u"\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0438\u0442\u044c\u0441\u044f", None))
-        self.remoteStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\u041d\u0435 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043e", None))
-        self.serverVersionLabel.setText("")
+        self.actionBtn.setText(QCoreApplication.translate("MainWindow", u"\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c", None))
+        self.connectionStatusLabel.setText(QCoreApplication.translate("MainWindow", u"\u26aa \u041d\u0435 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043e", None))
         self.errorLabel.setText("")
         self.processingTitleLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:22pt; font-weight:700; color:#1e293b;\">\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0430 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438 \u0438 \u0432\u044b\u0431\u043e\u0440 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u043e\u0432</span></p></body></html>", None))
         self.processingGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"\u041c\u0435\u0442\u043e\u0434\u044b \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u044f \u0430\u0443\u0434\u0438\u043e", None))

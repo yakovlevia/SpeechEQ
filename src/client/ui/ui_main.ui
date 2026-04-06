@@ -19,8 +19,8 @@
   <property name="windowTitle">
    <string>SpeechEQ v1.0</string>
   </property>
-    <property name="styleSheet">
-    <string notr="true">
+  <property name="styleSheet">
+   <string notr="true">
           /* Глобальные стили */
           QMainWindow {
               background-color: #f5f7fa;
@@ -65,7 +65,7 @@
               background-color: #e2e8f0;
           }
           
-          QPushButton#startProcessingBtn, QPushButton#startLocalBtn, QPushButton#connectBtn {
+          QPushButton#actionBtn {
               background-color: #3b82f6;
               border: 1.5px solid #3b82f6;
               color: white;
@@ -73,7 +73,7 @@
               font-weight: bold;
           }
           
-          QPushButton#startProcessingBtn:hover, QPushButton#startLocalBtn:hover, QPushButton#connectBtn:hover {
+          QPushButton#actionBtn:hover {
               background-color: #2563eb;
               border-color: #2563eb;
           }
@@ -236,7 +236,6 @@
               background: transparent;
           }
           
-          /* Выпадающий список: только красота, без расширения по ширине */
           QComboBox QAbstractItemView {
               border: 1px solid #cbd5e1;
               border-radius: 8px;
@@ -272,7 +271,6 @@
               color: #ffffff;
           }
           
-          /* Скроллбар внутри выпадающего списка */
           QComboBox QScrollBar:vertical {
               background: transparent;
               width: 10px;
@@ -302,8 +300,8 @@
               background: transparent;
           }
           
-          /* ===== СТИЛИ ДЛЯ QSpinBox / QTimeEdit / QDateTimeEdit ===== */
-          QSpinBox, QTimeEdit, QDateTimeEdit {
+          /* ===== СТИЛИ ДЛЯ QSpinBox ===== */
+          QSpinBox {
               border: 1px solid #cbd5e1;
               border-radius: 6px;
               padding: 0 26px 0 10px;
@@ -314,19 +312,19 @@
               color: #1f2d3d;
           }
           
-          QSpinBox:focus, QTimeEdit:focus, QDateTimeEdit:focus {
+          QSpinBox:focus {
               border-color: #3b82f6;
               outline: none;
           }
           
-          QSpinBox::up-button, QTimeEdit::up-button, QDateTimeEdit::up-button {
+          QSpinBox::up-button {
               subcontrol-origin: border;
               subcontrol-position: top right;
               width: 22px;
               height: 18px;
           }
           
-          QSpinBox::down-button, QTimeEdit::down-button, QDateTimeEdit::down-button {
+          QSpinBox::down-button {
               subcontrol-origin: border;
               subcontrol-position: bottom right;
               width: 22px;
@@ -414,7 +412,7 @@
               background-color: #f8fafc;
           }
     </string>
-    </property>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
@@ -762,6 +760,8 @@
              </item>
             </widget>
            </item>
+           
+           <!-- Контейнер для локального режима -->
            <item>
             <widget class="QWidget" name="localModeWidget" native="true">
              <layout class="QGridLayout" name="gridLayout">
@@ -792,44 +792,11 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="0" colspan="2">
-               <widget class="QPushButton" name="startLocalBtn">
-                <property name="text">
-                 <string>Запустить локальный режим</string>
-                </property>
-                <property name="font">
-                 <font>
-                  <pointsize>13</pointsize>
-                  <weight>75</weight>
-                  <bold>true</bold>
-                 </font>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>50</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0" colspan="2">
-               <widget class="QLabel" name="localStatusLabel">
-                <property name="text">
-                 <string>Статус: не запущен</string>
-                </property>
-                <property name="font">
-                 <font>
-                  <pointsize>12</pointsize>
-                 </font>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">color: #64748b;</string>
-                </property>
-               </widget>
-              </item>
              </layout>
             </widget>
            </item>
+           
+           <!-- Контейнер для удалённого режима -->
            <item>
             <widget class="QWidget" name="remoteModeWidget" native="true">
              <layout class="QGridLayout" name="gridLayout_2">
@@ -919,63 +886,54 @@
                  <number>65535</number>
                 </property>
                 <property name="value">
-                 <number>8080</number>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0" colspan="2">
-               <widget class="QPushButton" name="connectBtn">
-                <property name="text">
-                 <string>Подключиться</string>
-                </property>
-                <property name="font">
-                 <font>
-                  <pointsize>13</pointsize>
-                  <weight>75</weight>
-                  <bold>true</bold>
-                 </font>
-                </property>
-                <property name="minimumSize">
-                 <size>
-                  <width>0</width>
-                  <height>50</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0" colspan="2">
-               <widget class="QLabel" name="remoteStatusLabel">
-                <property name="text">
-                 <string>Не подключено</string>
-                </property>
-                <property name="font">
-                 <font>
-                  <pointsize>12</pointsize>
-                 </font>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">color: #64748b;</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0" colspan="2">
-               <widget class="QLabel" name="serverVersionLabel">
-                <property name="text">
-                 <string/>
-                </property>
-                <property name="font">
-                 <font>
-                  <pointsize>11</pointsize>
-                 </font>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">color: #22c55e;</string>
+                 <number>50051</number>
                 </property>
                </widget>
               </item>
              </layout>
             </widget>
            </item>
+           
+           <!-- Общая кнопка действия -->
+           <item>
+            <widget class="QPushButton" name="actionBtn">
+             <property name="text">
+              <string>Запустить локальный режим</string>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>13</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>50</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           
+           <!-- Строка статуса подключения -->
+           <item>
+            <widget class="QLabel" name="connectionStatusLabel">
+             <property name="text">
+              <string>⚪ Не подключено</string>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+              </font>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">color: #64748b; padding: 5px; font-weight: bold;</string>
+             </property>
+            </widget>
+           </item>
+           
+           <!-- Строка ошибок -->
            <item>
             <widget class="QLabel" name="errorLabel">
              <property name="text">

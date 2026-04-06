@@ -3,27 +3,31 @@ syntax = "proto3";
 package speecheq;
 
 service AudioProcessor {
-    rpc ProcessAudio (AudioRequest) returns (AudioResponse);
+    rpc ProcessAudio (AudioRequest) returns (AudioResponse) {}
 }
 
 message ProcessingSettings {
+    // DSP FLAGS
     bool noise_reduction = 1;
     bool hum_removal = 2;
     bool deesser = 3;
     bool eq = 4;
     bool normalization = 5;
-
+    
+    // DSP ADJUSTABLE PARAMS
     float noise_reduction_level = 6;
     float hum_frequency = 7;
     float hum_removal_strength = 8;
     float deesser_strength = 9;
     string eq_profile = 10;
     float normalization_target = 11;
-
+    
+    // ML FLAGS & PARAMS
     bool ml_model = 12;
     string ml_model_name = 13;
     float ml_strength = 14;
-
+    
+    // Extensible
     string extra = 15;
 }
 
