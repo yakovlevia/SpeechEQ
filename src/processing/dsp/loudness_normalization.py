@@ -1,14 +1,14 @@
 import numpy as np
 from scipy import signal
 import pyloudnorm as pyln
-from .base import DSPMethod
+from processing.core.base import AudioProcessingMethod
 from processing.core.settings import ProcessingSettings
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class LoudnessNormalizationDSP(DSPMethod):
+class LoudnessNormalizationDSP(AudioProcessingMethod):
     """
     Нормализация громкости по стандарту EBU R128 (LUFS).
     

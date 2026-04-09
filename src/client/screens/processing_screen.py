@@ -425,9 +425,11 @@ class ProcessingScreenLogic(QObject):
         settings.normalization = self.ui.normalizationCheck.isChecked()
         settings.normalization_target = float(self.ui.lufsSpinBox.value())
 
-        ml_model = self.ui.mlModelCombo.currentIndex()
-        settings.ml_model = ml_model > 0
-        settings.ml_model_name = ["", "v1", "v2"][ml_model] if ml_model < 3 else ""
+        # ---------- ML MODEL ----------
+        ml_enabled = self.ui.mlModelCombo.currentIndex() == 1
+
+        settings.ml_model = ml_enabled
+        settings.ml_model_name = "metricgan_plus" if ml_enabled else None
 
         return settings
 

@@ -25,6 +25,7 @@ from server.config import ServerConfig
 
 from processing.core.processing_logic import AudioProcessingLogic
 from processing.handlers.local import LocalAudioHandler
+
 from processing.dsp import (
     NoiseReductionDSP,
     HumRemovalDSP,
@@ -32,6 +33,8 @@ from processing.dsp import (
     SpeechEQDSP,
     LoudnessNormalizationDSP,
 )
+
+from processing.ml.metricgan_plus import MetricGANPlusMethod
 
 
 def setup_logging(debug: bool = False) -> None:
@@ -62,22 +65,22 @@ def setup_logging(debug: bool = False) -> None:
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
 
-    # Снижаем детализацию логов gRPC — они слишком шумные
     logging.getLogger("grpc").setLevel(logging.WARNING)
 
 
 def setup_processing_pipeline() -> tuple[LocalAudioHandler, AudioProcessingLogic]:
     """Создаёт и настраивает пайплайн обработки аудио.
 
-    Формирует цепочку DSP-методов в строгом порядке:
-    1. Удаление сетевого гула (50/60 Гц)
-    2. Шумоподавление
-    3. Де-эссер (подавление шипящих)
-    4. Речевой эквалайзер
-    5. Нормализация громкости (финальный этап)
+    Формирует цепочку методов в строгом порядке:
+    1. MetricGAN+ (ML) — комплексное восстановление речи (шум, гулы, искажения)
+    2. NoiseReductionDSP — доочистка остаточного нестационарного шума
+    3. HumRemovalDSP — точечное удаление сетевого гула 50/60 Гц и гармоник
+    4. DeEsserDSP — подавление сибилянтов (шипящих звуков)
+    5. SpeechEQDSP — эквализация под речевой диапазон (финальный тембр)
+    6. LoudnessNormalizationDSP — нормализация громкости (LUFS) и true‑peak лимитинг
 
-    Порядок критичен: например, нормализация должна идти последней,
-    чтобы не исказить результаты предыдущих этапов.
+    ML-модель должна идти первой, так как она обучена на сыром сигнале.
+    DSP-методы после неё лишь доводят звук и не создают артефактов.
 
     Returns:
         tuple: (LocalAudioHandler, AudioProcessingLogic) — готовый
@@ -86,22 +89,26 @@ def setup_processing_pipeline() -> tuple[LocalAudioHandler, AudioProcessingLogic
     logger = logging.getLogger(__name__)
     logger.info("Инициализация пайплайна обработки")
 
-    # Порядок методов важен — см. docstring функции
-    dsp_methods = [
-        HumRemovalDSP(),              # Удаление гула 50/60 Гц
+    # Порядок методов критичен — см. docstring функции
+    processing_methods = [
+        MetricGANPlusMethod(),        # ML улучшение речи
         NoiseReductionDSP(),          # Шумоподавление
+        HumRemovalDSP(),              # Удаление гула 50/60 Гц
         DeEsserDSP(),                 # Подавление шипящих звуков
         SpeechEQDSP(),                # Эквализация под речевой диапазон
-        LoudnessNormalizationDSP(),   # Нормализация громкости (последний этап)
+        LoudnessNormalizationDSP(),   # Нормализация громкости
     ]
 
     processing_logic = AudioProcessingLogic(
-        dsp_methods=dsp_methods,
-        ml_methods=[]  # ML-методы пока не используются
+        processing_methods=processing_methods,
     )
 
     audio_handler = LocalAudioHandler(processing_logic=processing_logic)
-    logger.info(f"Пайплайн готов: {[m.__class__.__name__ for m in dsp_methods]}")
+
+    logger.info(
+        f"Пайплайн готов: {[m.__class__.__name__ for m in processing_methods]}"
+    )
+
     return audio_handler, processing_logic
 
 

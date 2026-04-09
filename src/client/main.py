@@ -25,6 +25,7 @@ from processing.dsp import (
     LoudnessNormalizationDSP
 )
 from processing.handlers.local import LocalAudioHandler
+from processing.ml.metricgan_plus import MetricGANPlusMethod
 
 # Настройка логирования
 logging.basicConfig(
@@ -42,34 +43,38 @@ def setup_processing_pipeline():
     """
     Настройка пайплайна обработки аудио.
 
-    Создаёт цепочку DSP-методов для улучшения речи в следующем порядке:
-    1. Удаление гула (50/60 Гц)
-    2. Шумоподавление
-    3. Де-эссер (удаление шипящих)
-    4. Эквализация под речь
-    5. Нормализация громкости
+    Создаёт цепочку методов для улучшения речи в следующем порядке:
+    1. MetricGAN+ (ML) — комплексное восстановление речи (шум, гулы, искажения)
+    2. NoiseReductionDSP — доочистка остаточного нестационарного шума
+    3. HumRemovalDSP — точечное удаление сетевого гула 50/60 Гц и гармоник
+    4. DeEsserDSP — подавление сибилянтов (шипящих звуков)
+    5. SpeechEQDSP — эквализация под речевой диапазон (финальный тембр)
+    6. LoudnessNormalizationDSP — нормализация громкости (LUFS) и true‑peak лимитинг
+
+    ML-модель должна идти первой, так как она обучена на сыром сигнале.
+    DSP-методы после неё лишь доводят звук и не создают артефактов.
 
     Returns:
-            tuple: (audio_handler, processing_logic) - обработчик и логика обработки
+        tuple: (audio_handler, processing_logic) — обработчик и логика обработки
     """
     logger.info("Инициализация пайплайна обработки аудио")
 
-    dsp_methods = [
-        HumRemovalDSP(),
-        NoiseReductionDSP(),
-        DeEsserDSP(),
-        SpeechEQDSP(),
-        LoudnessNormalizationDSP(),
+    processing_methods = [
+        MetricGANPlusMethod(),        # ML улучшение речи
+        NoiseReductionDSP(),          # Шумоподавление
+        HumRemovalDSP(),              # Удаление гула 50/60 Гц
+        DeEsserDSP(),                 # Подавление шипящих звуков
+        SpeechEQDSP(),                # Эквализация под речевой диапазон
+        LoudnessNormalizationDSP(),   # Нормализация громкости
     ]
 
     processing_logic = AudioProcessingLogic(
-        dsp_methods=dsp_methods,
-        ml_methods=[]
+        processing_methods=processing_methods
     )
 
     audio_handler = LocalAudioHandler(processing_logic=processing_logic)
 
-    logger.info(f"Пайплайн инициализирован: {[method.__class__.__name__ for method in dsp_methods]}")
+    logger.info(f"Пайплайн инициализирован: {[method.__class__.__name__ for method in processing_methods]}")
 
     return audio_handler, processing_logic
 
@@ -79,7 +84,7 @@ def get_default_settings() -> ProcessingSettings:
     Создаёт настройки обработки по умолчанию.
 
     Returns:
-            ProcessingSettings: Настройки со значениями по умолчанию
+        ProcessingSettings: Настройки со значениями по умолчанию
     """
     settings = ProcessingSettings()
 
@@ -98,6 +103,8 @@ def get_default_settings() -> ProcessingSettings:
 
     settings.normalization = True
     settings.normalization_target = -16.0
+
+    settings.ml_model = False
 
     return settings
 

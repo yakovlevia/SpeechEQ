@@ -456,100 +456,117 @@ class VideoProcessor:
         self,
         task: AudioCleanupTask,
         audio_dir: Path,
-        segment_duration: float = None,
+        segment_duration: float = None,  
         overlap_duration: float = None
     ) -> Path:
-        """Собирает обработанные аудио-сегменты в единый файл.
 
-        Применяет crossfade на участках перекрытия для плавного соединения.
-
-        Args:
-            task: Задача с параметрами сборки.
-            audio_dir: Директория с обработанными сегментами.
-            segment_duration: Длительность сегмента в секундах.
-            overlap_duration: Длительность перекрытия в секундах.
-
-        Returns:
-            Path: Путь к собранному аудиофайлу.
-        """
         if segment_duration is None:
             segment_duration = AUDIO_CONFIG["segment_duration"]
+
         if overlap_duration is None:
             overlap_duration = AUDIO_CONFIG["overlap_duration"]
-            
+
         segments_list_path = audio_dir / "segments_list.txt"
+
         if not segments_list_path.exists():
             raise FileNotFoundError(f"Список сегментов не найден: {segments_list_path}")
-            
-        with open(segments_list_path, 'r', encoding='utf-8') as f:
+
+        with open(segments_list_path, "r", encoding="utf-8") as f:
             segment_files = [
                 line.strip().replace("file '", "").replace("'", "")
                 for line in f.readlines()
             ]
+
         if not segment_files:
             raise RuntimeError("Нет сегментов для сборки аудио")
-            
+
         segment_files.sort(key=lambda x: int(Path(x).stem.split("_")[-1]))
-        logger.info(f"Сборка аудио: {len(segment_files)} сегментов, overlap={overlap_duration}s")
-        
+
+        logger.info(
+            f"Сборка аудио: {len(segment_files)} сегментов, overlap={overlap_duration}s"
+        )
+
         sr, first_audio = wavfile.read(audio_dir / segment_files[0])
         first_audio = first_audio.astype(np.float32) / 32767.0
+
         overlap_samples = int(overlap_duration * sr)
-        result_audio = first_audio.copy()
-        
-        logger.info(f"Первый сегмент: {len(result_audio)} сэмплов, sample_rate={sr}")
-        
-        for i, seg_file in enumerate(segment_files[1:], start=1):
-            sr_seg, seg_data = wavfile.read(audio_dir / seg_file)
-            seg_data = seg_data.astype(np.float32) / 32767.0
-            
-            if sr_seg != sr:
-                raise ValueError(f"Несовпадающий sample_rate в сегменте {i}: {sr_seg} != {sr}")
-                
-            if overlap_samples > 0 and len(result_audio) >= overlap_samples and len(seg_data) > overlap_samples:
-                overlap_end_idx = min(overlap_samples, len(seg_data))
-                fade_out = np.linspace(1.0, 0.0, overlap_end_idx)
-                fade_in = np.linspace(0.0, 1.0, overlap_end_idx)
-                result_audio[-overlap_end_idx:] = (
-                    result_audio[-overlap_end_idx:] * fade_out +
-                    seg_data[:overlap_end_idx] * fade_in
-                )
-                if len(seg_data) > overlap_end_idx:
-                    result_audio = np.concatenate([result_audio, seg_data[overlap_end_idx:]])
-            else:
-                result_audio = np.concatenate([result_audio, seg_data])
-                
-        total_samples = len(result_audio)
-        logger.info(f"После сборки: {total_samples} сэмплов ({total_samples/sr:.2f}s)")
-        
+        segment_samples = int(segment_duration * sr)
+        step_samples = segment_samples - overlap_samples
+
         if task.duration > 0:
-            expected_samples = int(task.duration * sr)
-            if total_samples > expected_samples:
-                logger.info(f"Обрезка аудио: {total_samples} → {expected_samples} сэмплов")
-                result_audio = result_audio[:expected_samples]
-            elif total_samples < expected_samples:
-                shortage = expected_samples - total_samples
-                logger.warning(f"Аудио короче ожидаемого на {shortage} сэмплов, дополняем тишиной")
-                result_audio = np.concatenate([result_audio, np.zeros(shortage, dtype=np.float32)])
-                
+            total_samples = int(task.duration * sr)
+        else:
+            total_samples = step_samples * (len(segment_files) - 1) + len(first_audio)
+
+        logger.info(f"Финальный размер аудио: {total_samples} сэмплов")
+
+        result_audio = np.zeros(total_samples, dtype=np.float32)
+
+        fade_out = np.linspace(1.0, 0.0, overlap_samples, dtype=np.float32)
+        fade_in = np.linspace(0.0, 1.0, overlap_samples, dtype=np.float32)
+
+        for i, seg_file in enumerate(segment_files):
+
+            sr_seg, seg_data = wavfile.read(audio_dir / seg_file)
+
+            if sr_seg != sr:
+                raise ValueError(
+                    f"Несовпадающий sample_rate в сегменте {i}: {sr_seg} != {sr}"
+                )
+
+            seg_data = seg_data.astype(np.float32) / 32767.0
+
+            start = i * step_samples
+            end = start + len(seg_data)
+
+            if end > total_samples:
+                seg_data = seg_data[: total_samples - start]
+                end = total_samples
+
+            if i == 0:
+                result_audio[start:end] = seg_data
+                continue
+
+            overlap_start = start
+            overlap_end = min(start + overlap_samples, total_samples)
+
+            actual_overlap = overlap_end - overlap_start
+
+            if actual_overlap > 0:
+
+                result_audio[overlap_start:overlap_end] = (
+                    result_audio[overlap_start:overlap_end] * fade_out[:actual_overlap]
+                    + seg_data[:actual_overlap] * fade_in[:actual_overlap]
+                )
+
+            remainder_start = overlap_end
+            remainder_len = len(seg_data) - actual_overlap
+
+            if remainder_len > 0:
+                result_audio[remainder_start:remainder_start + remainder_len] = seg_data[actual_overlap:]
+
         result_audio_int16 = np.clip(result_audio * 32767, -32768, 32767).astype(np.int16)
+
         output_wav_path = audio_dir.parent / f"{task.task_id}_assembled.wav"
-        
+
         loop = asyncio.get_running_loop()
+
         await loop.run_in_executor(
-            None, lambda: wavfile.write(output_wav_path, sr, result_audio_int16)
+            None,
+            lambda: wavfile.write(output_wav_path, sr, result_audio_int16)
         )
-        
+
         for seg_file in segment_files:
             try:
                 (audio_dir / seg_file).unlink()
             except Exception as e:
                 logger.warning(f"Не удалось удалить сегмент {seg_file}: {e}")
-                
+
         logger.info(
             f"Аудио собрано: {output_wav_path.name}, "
-            f"длительность={len(result_audio_int16)/sr:.2f}с, ожидалось={task.duration:.2f}с"
+            f"длительность={len(result_audio_int16)/sr:.2f}с"
         )
+
         return output_wav_path
 
     async def merge_audio_with_video(
