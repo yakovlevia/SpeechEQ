@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'ui_main.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.10.0
+## Created by: Qt User Interface Compiler version 6.11.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -749,7 +749,6 @@ class Ui_MainWindow(object):
         self.mlModelCombo = QComboBox(self.processingGroupBox)
         self.mlModelCombo.addItem("")
         self.mlModelCombo.addItem("")
-        self.mlModelCombo.addItem("")
         self.mlModelCombo.setObjectName(u"mlModelCombo")
         self.mlModelCombo.setFont(font2)
         self.mlModelCombo.setMinimumSize(QSize(0, 40))
@@ -1219,8 +1218,7 @@ class Ui_MainWindow(object):
         self.eqPlaceholder.setText("")
         self.mlMethodsLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p><span style=\" font-size:14pt; font-weight:700;\">ML-\u043c\u0435\u0442\u043e\u0434\u044b:</span></p></body></html>", None))
         self.mlModelCombo.setItemText(0, QCoreApplication.translate("MainWindow", u"\u041d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c ML-\u043c\u043e\u0434\u0435\u043b\u0438", None))
-        self.mlModelCombo.setItemText(1, QCoreApplication.translate("MainWindow", u"\u041c\u043e\u0434\u0435\u043b\u044c \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u044f \u0440\u0435\u0447\u0438 v1", None))
-        self.mlModelCombo.setItemText(2, QCoreApplication.translate("MainWindow", u"\u041c\u043e\u0434\u0435\u043b\u044c \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0440\u0435\u0447\u0438 v2", None))
+        self.mlModelCombo.setItemText(1, QCoreApplication.translate("MainWindow", u"MetricGAN+", None))
 
         self.generalSettingsLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p><span style=\" font-size:14pt; font-weight:700;\">\u041e\u0431\u0449\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438:</span></p></body></html>", None))
         self.normalizationCheck.setText(QCoreApplication.translate("MainWindow", u"\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043d\u043e\u0440\u043c\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u0433\u0440\u043e\u043c\u043a\u043e\u0441\u0442\u0438 (LUFS)", None))
@@ -1237,15 +1235,15 @@ class Ui_MainWindow(object):
         self.progressTitleLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:22pt; font-weight:700; color:#1e293b;\">\u041e\u0447\u0435\u0440\u0435\u0434\u044c \u0438 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438</span></p></body></html>", None))
         self.openLogBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u043e\u0433", None))
         ___qtablewidgetitem = self.taskTable.horizontalHeaderItem(0)
-        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b (\u0432\u0445\u043e\u0434\u043d\u043e\u0439)", None));
+        ___qtablewidgetitem.setText(QCoreApplication.translate("MainWindow", u"\u0424\u0430\u0439\u043b (\u0432\u0445\u043e\u0434\u043d\u043e\u0439)", None))
         ___qtablewidgetitem1 = self.taskTable.horizontalHeaderItem(1)
-        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0445\u043e\u0434\u043d\u043e\u0439 \u0444\u0430\u0439\u043b", None));
+        ___qtablewidgetitem1.setText(QCoreApplication.translate("MainWindow", u"\u0412\u044b\u0445\u043e\u0434\u043d\u043e\u0439 \u0444\u0430\u0439\u043b", None))
         ___qtablewidgetitem2 = self.taskTable.horizontalHeaderItem(2)
-        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 (\u0441\u0435\u0433\u043c\u0435\u043d\u0442\u044b)", None));
+        ___qtablewidgetitem2.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 (\u0441\u0435\u0433\u043c\u0435\u043d\u0442\u044b)", None))
         ___qtablewidgetitem3 = self.taskTable.horizontalHeaderItem(3)
-        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c", None));
+        ___qtablewidgetitem3.setText(QCoreApplication.translate("MainWindow", u"\u0414\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c", None))
         ___qtablewidgetitem4 = self.taskTable.horizontalHeaderItem(4)
-        ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441", None));
+        ___qtablewidgetitem4.setText(QCoreApplication.translate("MainWindow", u"\u0421\u0442\u0430\u0442\u0443\u0441", None))
         self.progressGroupBox.setTitle(QCoreApplication.translate("MainWindow", u"\u041e\u0431\u0449\u0438\u0439 \u043f\u0440\u043e\u0433\u0440\u0435\u0441\u0441", None))
         self.filesProgressLabel.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043f\u043e \u0444\u0430\u0439\u043b\u0430\u043c:", None))
         self.totalSegmentsLabel.setText(QCoreApplication.translate("MainWindow", u"\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441 \u043f\u043e \u0441\u0435\u0433\u043c\u0435\u043d\u0442\u0430\u043c:", None))

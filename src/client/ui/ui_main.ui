@@ -1209,12 +1209,7 @@
              </item>
              <item>
               <property name="text">
-               <string>Модель улучшения речи v1</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>Модель восстановления речи v2</string>
+               <string>MetricGAN+</string>
               </property>
              </item>
             </widget>

@@ -59,7 +59,7 @@ class ProcessingSettings:
     ml_model_name: str = ""  # "" | "v1" | "v2"
     
     # ML Strength (фиксированный, можно добавить slider позже)
-    ml_strength: float = 0.7
+    ml_strength: float = 0.3
     
     # ========== EXTENSIBLE ==========
     extra: Dict[str, Any] = field(default_factory=dict)

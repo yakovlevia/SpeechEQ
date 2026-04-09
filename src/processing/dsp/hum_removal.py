@@ -1,13 +1,13 @@
 import numpy as np
 from scipy import signal
-from .base import DSPMethod
+from processing.core.base import AudioProcessingMethod
 from processing.core.settings import ProcessingSettings
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class HumRemovalDSP(DSPMethod):
+class HumRemovalDSP(AudioProcessingMethod):
     """
     Удаление сетевого гула 50/60 Гц и его гармоник.
     

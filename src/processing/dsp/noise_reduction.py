@@ -1,13 +1,13 @@
 import numpy as np
 import noisereduce as nr
-from .base import DSPMethod
+from processing.core.base import AudioProcessingMethod
 from processing.core.settings import ProcessingSettings
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class NoiseReductionDSP(DSPMethod):
+class NoiseReductionDSP(AudioProcessingMethod):
     """
     Шумоподавление с использованием библиотеки noisereduce.
     

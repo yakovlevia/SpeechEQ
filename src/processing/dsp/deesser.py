@@ -1,10 +1,10 @@
 import numpy as np
 from scipy import signal
-from .base import DSPMethod
+from processing.core.base import AudioProcessingMethod
 from processing.core.settings import ProcessingSettings
 
 
-class DeEsserDSP(DSPMethod):
+class DeEsserDSP(AudioProcessingMethod):
     """
     Де-эссер для подавления сибилянтов (шипящих звуков).
     
