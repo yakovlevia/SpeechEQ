@@ -32,22 +32,7 @@ class TaskStatus(Enum):
 
 @dataclass
 class AudioCleanupTask:
-    """Задача на очистку аудио из видео.
-
-    Attributes:
-        task_id: Уникальный идентификатор задачи.
-        priority: Приоритет задачи (меньшее значение = выше приоритет).
-        input_path: Путь к исходному видеофайлу.
-        output_path: Путь для сохранения результата.
-        handler: Обработчик аудио для очистки.
-        handler_settings: Настройки обработчика.
-        total_segments: Общее количество аудио-сегментов.
-        cleaned_segments: Количество уже обработанных сегментов.
-        status: Текущий статус задачи.
-        duration: Длительность видео в секундах.
-        duration_formatted: Человекочитаемый формат длительности.
-        error_message: Текст ошибки (если статус FAILED).
-    """
+    """Задача на очистку аудио из видео."""
 
     task_id: str = field(default_factory=lambda: f"task_{uuid.uuid4().hex[:12]}")
     priority: int = 1
