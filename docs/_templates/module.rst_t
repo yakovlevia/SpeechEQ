@@ -1,0 +1,7 @@
+{{ fullname | e | heading }}
+
+.. automodule:: {{ fullname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__

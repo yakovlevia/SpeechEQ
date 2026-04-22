@@ -1,18 +1,11 @@
-SpeechEQ Documentation
-======================
+==========================
+Project Name — API Docs
+==========================
 
-Добро пожаловать в документацию проекта SpeechEQ.
+Добро пожаловать в автоматически сгенерированную документацию.
 
 .. toctree::
    :maxdepth: 6
-   :caption: API Reference
-   :hidden:
+   :caption: Содержание
 
    source/modules
-
-Индексы и таблицы
-=================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

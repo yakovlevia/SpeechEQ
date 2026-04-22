@@ -1,0 +1,32 @@
+{{ fullname | e | heading }}
+
+.. automodule:: {{ fullname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :special-members: __init__
+
+{% if subpackages %}
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 6
+
+{% for subpackage in subpackages %}
+   {{ subpackage }}
+{% endfor %}
+
+{% endif %}
+{% if submodules %}
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 6
+
+{% for submodule in submodules %}
+   {{ submodule }}
+{% endfor %}
+
+{% endif %}

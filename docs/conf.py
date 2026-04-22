@@ -1,77 +1,115 @@
-# Configuration file for the Sphinx documentation builder.
-# Generated for SpeechEQ project
+# Sphinx configuration file
 
 import os
 import sys
-from pathlib import Path
+from unittest.mock import MagicMock
 
-docs_dir = Path(__file__).parent.resolve()
-project_root = docs_dir.parent
+# ---------------------------------------------------------------------------
+# Path setup
+# ---------------------------------------------------------------------------
+# src/ находится уровнем выше docs/
+sys.path.insert(0, os.path.abspath('../src'))
 
-# Добавляем корень проекта, чтобы импорты вида "src.client..." работали корректно
-sys.path.insert(0, str(project_root))
+# ---------------------------------------------------------------------------
+# Mock тяжёлых и GUI-зависимостей (не нужны для генерации docs)
+# ---------------------------------------------------------------------------
+class Mock(MagicMock):
+    @classmethod
+    def __getattr__(cls, name):
+        return MagicMock()
 
-# -- Project information -----------------------------------------------------
-project = 'SpeechEQ'
+MOCK_MODULES = [
+    # GUI
+    'PySide6', 'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets',
+    'PySide6.QtMultimedia', 'PySide6.QtNetwork', 'PySide6.QtOpenGL',
+    # ML / DL
+    'torch', 'torch.nn', 'torch.nn.functional', 'torch.optim',
+    'torch.utils', 'torch.utils.data',
+    'torchaudio', 'torchaudio.transforms', 'torchaudio.functional',
+    # Audio
+    'soundfile', 'librosa', 'librosa.core', 'librosa.feature',
+    'pyaudio', 'sounddevice',
+    # Scientific
+    'numpy', 'numpy.typing',
+    'scipy', 'scipy.signal', 'scipy.fft', 'scipy.io',
+    # gRPC / Protobuf
+    'grpc', 'grpc.aio',
+    'google', 'google.protobuf', 'google.protobuf.descriptor',
+]
+
+sys.modules.update({mod: Mock() for mod in MOCK_MODULES})
+
+# ---------------------------------------------------------------------------
+# Project information
+# ---------------------------------------------------------------------------
+project   = 'SpeechEQ'
 copyright = '2026, Ivan Yakovlev'
-author = 'Ivan Yakovlev'
-release = '1.0.0'
+author    = 'Ivan Yakovlev'
+release   = '1.0.0'
 
-# -- General configuration ---------------------------------------------------
+# ---------------------------------------------------------------------------
+# Extensions
+# ---------------------------------------------------------------------------
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx_autodoc_typehints',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
+    'sphinx.ext.autodoc',           # Документирование из docstrings
+    'sphinx.ext.autosummary',       # Сводные таблицы API
+    'sphinx.ext.napoleon',          # Google / NumPy docstrings
+    'sphinx.ext.viewcode',          # Ссылки «View source»
+    'sphinx.ext.intersphinx',       # Кросс-ссылки на внешние docs
+    'sphinx_autodoc_typehints',     # Типы из аннотаций Python
 ]
 
+templates_path   = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+language         = 'ru'
 
-# -- Autodoc settings --------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Autodoc
+# ---------------------------------------------------------------------------
 autodoc_default_options = {
-    'members': True,
-    'undoc-members': True,
-    'show-inheritance': True,
-    'member-order': 'bysource',
+    'members':          True,           # Все публичные члены
+    'undoc-members':    True,           # Даже без docstring
+    'show-inheritance': True,           # Родительские классы
+    'private-members':  False,          # Пропускать _private
+    'special-members':  '__init__',     # Но __init__ включаем
 }
 
-autodoc_member_order = 'bysource'
-autodoc_typehints = 'description'
-autodoc_typehints_description_target = 'documented'
+autodoc_member_order     = 'bysource'   # Порядок — как в исходнике
+autodoc_typehints        = 'description'# Типы в описании, не в сигнатуре
+autodoc_inherit_docstrings = True
 
-# Mock imports for heavy/optional dependencies
-autodoc_mock_imports = [
-    'PySide6', 'PySide6.QtCore', 'PySide6.QtWidgets',
-    'PySide6.QtGui', 'PySide6.QtUiTools', 'PySide6.QtMultimedia',
-    'PySide6.QtMultimediaWidgets', 'shiboken6',
-]
+# ---------------------------------------------------------------------------
+# Napoleon
+# ---------------------------------------------------------------------------
+napoleon_google_docstring       = True
+napoleon_numpy_docstring        = True
+napoleon_include_init_with_doc  = True
+napoleon_attr_annotations       = True
 
-# -- Options for HTML output -------------------------------------------------
-html_theme = 'sphinx_rtd_theme'
-html_title = 'SpeechEQ Documentation'
-html_short_title = 'SpeechEQ'
-html_logo = None
-html_favicon = None
+# ---------------------------------------------------------------------------
+# sphinx-autodoc-typehints
+# ---------------------------------------------------------------------------
+always_document_param_types = True
+typehints_fully_qualified   = False
 
-html_theme_options = {
-    'navigation_depth': 6,  # Увеличено для глубокой вложенности
-    'collapse_navigation': False,
-    'sticky_navigation': True,
-    'titles_only': False,
-    'includehidden': True,
-}
-
-# Убираем префикс модуля из заголовков и сигнатур (напр. MyClass вместо src.client.MyClass)
-add_module_names = False
-
-# -- Internationalization ----------------------------------------------------
-language = 'ru'
-locale_dirs = ['locale/']
-gettext_compact = False
-
-# -- Intersphinx mapping -----------------------------------------------------
+# ---------------------------------------------------------------------------
+# Intersphinx
+# ---------------------------------------------------------------------------
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'torch': ('https://pytorch.org/docs/stable', None),
+    'numpy':  ('https://numpy.org/doc/stable/', None),
+}
+
+# ---------------------------------------------------------------------------
+# HTML / RTD Theme
+# ---------------------------------------------------------------------------
+html_theme       = 'sphinx_rtd_theme'
+html_static_path = ['_static']
+
+html_theme_options = {
+    'navigation_depth':    6,      # Глубина вложенности в боковом меню
+    'collapse_navigation': False,  # Не сворачивать дерево навигации
+    'titles_only':         False,  # Показывать все заголовки, не только разделы
+    'includehidden':       True,
+    'display_version':     True,
 }
