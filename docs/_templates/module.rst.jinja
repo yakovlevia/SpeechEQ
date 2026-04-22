@@ -1,10 +1,10 @@
-{%- set display_name = fullname.split('.')[-1] %}
+{%- set display_name = module.split('.')[-1] %}
 {{ display_name }}
 {{ '=' * display_name | length }}
 
-.. currentmodule:: {{ fullname }}
+.. currentmodule:: {{ module }}
 
-.. automodule:: {{ fullname }}
+.. automodule:: {{ module }}
    :members:
    :undoc-members:
    :show-inheritance:
