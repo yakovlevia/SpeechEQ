@@ -1,5 +1,5 @@
 SpeechEQ Documentation
-=====================
+======================
 
 .. automodule:: client
    :members:
