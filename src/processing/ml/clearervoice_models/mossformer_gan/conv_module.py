@@ -272,6 +272,7 @@ class DepthwiseConv2d(nn.Module):
     """
     When groups == in_channels and out_channels == K * in_channels, where K is a positive integer,
     this operation is termed in literature as depthwise convolution.
+
     Args:
         in_channels (int): Number of channels in the input
         out_channels (int): Number of channels produced by the convolution
@@ -279,10 +280,12 @@ class DepthwiseConv2d(nn.Module):
         stride (int, optional): Stride of the convolution. Default: 1
         padding (int or tuple, optional): Zero-padding added to both sides of the input. Default: 0
         bias (bool, optional): If True, adds a learnable bias to the output. Default: True
-    Inputs: inputs
+
+    Inputs:
         - **inputs** (batch, in_channels, time): Tensor containing input vector
-    Returns: outputs
-        - **outputs** (batch, out_channels, time): Tensor produces by depthwise 1-D convolution.
+
+    Returns:
+        - **outputs** (batch, out_channels, time): Tensor produced by depthwise 2-D convolution.
     """
     def __init__(
             self,

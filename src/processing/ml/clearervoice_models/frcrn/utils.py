@@ -99,18 +99,14 @@ def get_spectrogram_axis(sig_length, sr, n_fft=2048, hop=512):
 
 def istft(stft_matrix, hop_length=None, win_length=None, window='hann',
           center=True, normalized=False, onesided=True, length=None):
-
-    """
-    keunwoochoi's implementation
-    https://gist.github.com/keunwoochoi/2f349e72cc941f6f10d4adf9b0d3f37e
-
-    stft_matrix = (batch, freq, time, complex)
+    """stft_matrix = (batch, freq, time, complex)
 
     All based on librosa
-        - http://librosa.github.io/librosa/_modules/librosa/core/spectrum.html#istft
+        - http://librosa.github.io/librosa/...
     What's missing?
         - normalize by sum of squared window --> do we need it here?
-        Actually the result is ok by simply dividing y by 2.
+
+    Actually the result is ok by simply dividing y by 2.
     """
     assert normalized == False
     assert onesided == True
@@ -166,7 +162,7 @@ def angle(tensor):
 
 def magphase(spec, power=1.):
     """
-    Separate a complex-valued spectrogram with shape (*,2)
+    Separate a complex-valued spectrogram with shape (\*,2)
     into its magnitude and phase.
     """
     mag = spec.pow(2).sum(-1).pow(power/2)

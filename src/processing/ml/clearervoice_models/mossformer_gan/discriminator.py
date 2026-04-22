@@ -66,7 +66,7 @@ def segment_specs(y, seg_length=15, seg_hop=4, max_length=None):
 class AdaptCNN(nn.Module):
     '''
     Taken from https://github.com/gabrielmittag/NISQA/blob/master/nisqa/NISQA_lib.py
-    --------
+    -----------------------------------------------------------------------------
     AdaptCNN: CNN with adaptive maxpooling that can be used as framewise model.
     Overall, it has six convolutional layers. This CNN module is more flexible
     than the StandardCNN that requires a fixed input dimension of 48x15.
@@ -202,7 +202,7 @@ class AdaptCNN(nn.Module):
 class PoolAttFF(torch.nn.Module):
     '''
     Taken from https://github.com/gabrielmittag/NISQA/blob/master/nisqa/NISQA_lib.py
-    ------
+    -----------------------------------------------------------------------------
     PoolAttFF: Attention-Pooling module with additonal feed-forward network.
     '''
     def __init__(self, d_input=384, output_size=1, h=128, dropout=0.1):
@@ -228,14 +228,14 @@ class PoolAttFF(torch.nn.Module):
         return x
 
 class Discriminator(nn.Module):
-    """Inputs: two waveforms including prediction (x) and groundtruth (y) 
-       Outputs: value between 0 ~ 1
+    """Inputs: two waveforms including prediction (x) and groundtruth (y)
+    Outputs: value between 0 ~ 1
 
-       The purpose is to predict the normalized PESQ value btw x and y using a network model
-       Process: x and y are concatenated, and inputted to a cnn net, the cnn output is reshaped and
-                processed by a self-attention net, the attention output is pooled and sigmoided for 
-                final output.
-     """
+    The purpose is to predict the normalized PESQ value btw x and y using a network model.
+    Process: x and y are concatenated, and inputted to a CNN net, the CNN output is reshaped
+    and processed by a self-attention net, the attention output is pooled and sigmoided for
+    final output.
+    """
     def __init__(self, ndf, in_channel=2):
         super().__init__()
         self.dim = 384
