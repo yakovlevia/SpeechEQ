@@ -57,7 +57,7 @@ jobs:
     - name: Install project dependencies (lightweight)
       run: |
         # Исключаем тяжёлые зависимости, которые не нужны для генерации docs
-        grep -v -E "^(torch|torchaudio|PySide6|speechbrain|einops|rotary_embedding_torch|pyloudnorm|noisereduce)" src/requirements.txt > requirements-light.txt 2>/dev/null || true
+        grep -v -E "^(PySide6)" src/requirements.txt > requirements-light.txt 2>/dev/null || true
         pip install -r requirements-light.txt || echo "⚠️ requirements-light.txt not found or empty"
 
     - name: Generate API documentation
