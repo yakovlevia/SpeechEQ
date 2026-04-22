@@ -3,33 +3,46 @@ name: Deploy Documentation
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
+# Разрешения для GitHub Pages и деплоя
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Позволяет только один одновременный деплой
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
-  docs:
+  build-docs:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup Python
+    - name: Setup Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
+        cache: 'pip'
 
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libsndfile1 ffmpeg
 
-    - name: Install Sphinx and extensions
+    - name: Install Python dependencies
       run: |
+        pip install --upgrade pip
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
     - name: Regenerate proto files
@@ -43,28 +56,26 @@ jobs:
 
     - name: Install project dependencies (lightweight)
       run: |
-        grep -v -E "torch|PySide6" src/requirements.txt > requirements-light.txt || true
-        pip install -r requirements-light.txt
+        # Исключаем тяжёлые зависимости, которые не нужны для генерации docs
+        grep -v -E "^(torch|torchaudio|PySide6|speechbrain|einops|rotary_embedding_torch|pyloudnorm|noisereduce)" src/requirements.txt > requirements-light.txt 2>/dev/null || true
+        pip install -r requirements-light.txt || echo "⚠️ requirements-light.txt not found or empty"
 
-    - name: Generate API documentation (no Submodules)
+    - name: Generate API documentation
       run: |
+        # Очищаем старые сгенерированные файлы
+        rm -rf docs/source/*.rst
+        # Генерируем .rst файлы с сохранением структуры папок
         sphinx-apidoc \
           --force \
           --separate \
-          --no-toc \
           --templatedir=docs/_templates \
           -o docs/source \
           src
 
-    - name: Build documentation
+    - name: Build HTML documentation
       run: |
         cd docs
-        sphinx-build -b html . _build/html
-
-    - name: Setup GitHub Pages
-      uses: actions/configure-pages@v4
-      with:
-        enablement: true
+        sphinx-build -b html -W --keep-going . _build/html
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
@@ -73,4 +84,5 @@ jobs:
 
     - name: Deploy to GitHub Pages
       id: deployment
+      if: github.event_name != 'pull_request'
       uses: actions/deploy-pages@v4

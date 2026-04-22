@@ -4,6 +4,16 @@ SpeechEQ Documentation
 .. toctree::
    :maxdepth: 2
    :caption: Содержание
-   :glob:
 
-   source/*
+   source/modules
+
+API Reference
+-------------
+
+* :ref:`genindex` — алфавитный указатель всех функций и классов
+* :ref:`modindex` — список всех модулей
+* :ref:`search` — поиск по документации
+
+.. note::
+   Документация сгенерирована автоматически из исходного кода.
+   Структура страниц повторяет структуру папок в проекте ``src/``.
