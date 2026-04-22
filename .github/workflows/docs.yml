@@ -32,7 +32,7 @@ jobs:
       run: |
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
-    - name: Regenerate proto files with compatible protobuf version
+    - name: Regenerate proto files
       run: |
         pip install protobuf==3.20.3 grpcio-tools==1.48.0
         python -m grpc_tools.protoc \
@@ -46,9 +46,15 @@ jobs:
         grep -v -E "torch|PySide6" src/requirements.txt > requirements-light.txt || true
         pip install -r requirements-light.txt
 
-    - name: Generate API documentation with sphinx-apidoc
+    - name: Generate API documentation (no Submodules)
       run: |
-        sphinx-apidoc -f -o docs/source src
+        sphinx-apidoc \
+          --force \
+          --separate \
+          --no-toc \
+          --templatedir=docs/_templates \
+          -o docs/source \
+          src
 
     - name: Build documentation
       run: |
@@ -60,7 +66,7 @@ jobs:
       with:
         enablement: true
 
-    - name: Upload documentation artifact
+    - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: docs/_build/html/

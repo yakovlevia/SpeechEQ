@@ -14,6 +14,8 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
+templates_path = ['_templates']
+
 autodoc_default_options = {
     'members': True,
     'undoc-members': True,
@@ -22,21 +24,11 @@ autodoc_default_options = {
 autodoc_member_order = 'bysource'
 
 autodoc_mock_imports = [
-    'torch',
-    'torchaudio',
-    'speechbrain',
-    'einops',
-    'rotary_embedding_torch',
-    'pyloudnorm',
-    'noisereduce',
-    'PySide6',
-    'PySide6.QtCore',
-    'PySide6.QtWidgets',
-    'PySide6.QtGui',
-    'PySide6.QtUiTools',
-    'PySide6.QtMultimedia',
-    'PySide6.QtMultimediaWidgets',
-    'shiboken6',
+    'torch', 'torchaudio', 'speechbrain', 'einops',
+    'rotary_embedding_torch', 'pyloudnorm', 'noisereduce',
+    'PySide6', 'PySide6.QtCore', 'PySide6.QtWidgets',
+    'PySide6.QtGui', 'PySide6.QtUiTools', 'PySide6.QtMultimedia',
+    'PySide6.QtMultimediaWidgets', 'shiboken6',
 ]
 
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

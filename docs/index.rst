@@ -1,12 +1,9 @@
 SpeechEQ Documentation
 ======================
 
-SpeechEQ — система улучшения качества речи с DSP и ML.
-
 .. toctree::
    :maxdepth: 2
-   :caption: Содержание:
+   :caption: Содержание
+   :glob:
 
-   source/client
-   source/processing
-   source/server
+   source/*
