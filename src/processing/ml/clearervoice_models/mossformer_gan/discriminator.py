@@ -66,7 +66,6 @@ def segment_specs(y, seg_length=15, seg_hop=4, max_length=None):
 class AdaptCNN(nn.Module):
     '''
     Taken from https://github.com/gabrielmittag/NISQA/blob/master/nisqa/NISQA_lib.py
-    -----------------------------------------------------------------------------
     AdaptCNN: CNN with adaptive maxpooling that can be used as framewise model.
     Overall, it has six convolutional layers. This CNN module is more flexible
     than the StandardCNN that requires a fixed input dimension of 48x15.
@@ -202,7 +201,6 @@ class AdaptCNN(nn.Module):
 class PoolAttFF(torch.nn.Module):
     '''
     Taken from https://github.com/gabrielmittag/NISQA/blob/master/nisqa/NISQA_lib.py
-    -----------------------------------------------------------------------------
     PoolAttFF: Attention-Pooling module with additonal feed-forward network.
     '''
     def __init__(self, d_input=384, output_size=1, h=128, dropout=0.1):

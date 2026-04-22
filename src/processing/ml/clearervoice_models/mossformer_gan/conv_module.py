@@ -286,6 +286,7 @@ class DepthwiseConv2d(nn.Module):
 
     Returns:
         - **outputs** (batch, out_channels, time): Tensor produced by depthwise 2-D convolution.
+
     """
     def __init__(
             self,
