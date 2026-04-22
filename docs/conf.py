@@ -1,5 +1,3 @@
-# Sphinx configuration file
-
 import os
 import sys
 from unittest.mock import MagicMock
@@ -7,109 +5,150 @@ from unittest.mock import MagicMock
 # ---------------------------------------------------------------------------
 # Path setup
 # ---------------------------------------------------------------------------
-# src/ находится уровнем выше docs/
-sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # ---------------------------------------------------------------------------
-# Mock тяжёлых и GUI-зависимостей (не нужны для генерации docs)
+# Mock
 # ---------------------------------------------------------------------------
-class Mock(MagicMock):
+class _AutoMock(MagicMock):
     @classmethod
     def __getattr__(cls, name):
         return MagicMock()
 
-MOCK_MODULES = [
-    # GUI
-    'PySide6', 'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets',
-    'PySide6.QtMultimedia', 'PySide6.QtNetwork', 'PySide6.QtOpenGL',
-    # ML / DL
-    'torch', 'torch.nn', 'torch.nn.functional', 'torch.optim',
-    'torch.utils', 'torch.utils.data',
-    'torchaudio', 'torchaudio.transforms', 'torchaudio.functional',
-    # Audio
-    'soundfile', 'librosa', 'librosa.core', 'librosa.feature',
-    'pyaudio', 'sounddevice',
-    # Scientific
-    'numpy', 'numpy.typing',
-    'scipy', 'scipy.signal', 'scipy.fft', 'scipy.io',
-    # gRPC / Protobuf
-    'grpc', 'grpc.aio',
-    'google', 'google.protobuf', 'google.protobuf.descriptor',
-]
 
-sys.modules.update({mod: Mock() for mod in MOCK_MODULES})
+class _AutoMockFinder:
+    _MOCK_PREFIXES = (
+        # ML / DL
+        'torch',
+        'torchaudio',
+        'speechbrain',
+        'einops',           # ← NEW: установлен в venv, проверяет torch.__version__
+        # Audio
+        'soundfile',
+        'librosa',
+        'pyaudio',
+        'sounddevice',
+        # Scientific
+        'numpy',
+        'scipy',
+        # gRPC
+        'grpc',
+        'google.protobuf',  # namespace-пакет, не трогаем весь 'google'
+        # GUI
+        'PySide6',
+        # Protobuf generated — устаревший файл, несовместимые версии
+        'src.proto',
+    )
+
+    def find_module(self, fullname, path=None):
+        if any(
+            fullname == p or fullname.startswith(p + '.')
+            for p in self._MOCK_PREFIXES
+        ):
+            return self
+        return None
+
+    def load_module(self, fullname):
+        if fullname in sys.modules:
+            return sys.modules[fullname]
+
+        mock = _AutoMock()
+        mock.__name__    = fullname
+        mock.__loader__  = self
+        mock.__spec__    = None
+        mock.__path__    = []
+        mock.__package__ = fullname.rpartition('.')[0]
+        mock.__all__     = []  # ← NEW: fix "__all__ should be a list of strings"
+
+        sys.modules[fullname] = mock
+
+        # Прикрепляем к родителю — иначе "module 'src' has no attribute 'proto'"
+        parent, _, child = fullname.rpartition('.')
+        if parent and parent in sys.modules:
+            try:
+                setattr(sys.modules[parent], child, mock)
+            except (AttributeError, TypeError):
+                pass
+
+        return mock
+
+
+sys.meta_path.insert(0, _AutoMockFinder())
 
 # ---------------------------------------------------------------------------
 # Project information
 # ---------------------------------------------------------------------------
 project   = 'SpeechEQ'
-copyright = '2026, Ivan Yakovlev'
-author    = 'Ivan Yakovlev'
-release   = '1.0.0'
+copyright = '2024, Author'
+author    = 'Author'
+release   = '0.1.0'
 
 # ---------------------------------------------------------------------------
 # Extensions
 # ---------------------------------------------------------------------------
 extensions = [
-    'sphinx.ext.autodoc',           # Документирование из docstrings
-    'sphinx.ext.autosummary',       # Сводные таблицы API
-    'sphinx.ext.napoleon',          # Google / NumPy docstrings
-    'sphinx.ext.viewcode',          # Ссылки «View source»
-    'sphinx.ext.intersphinx',       # Кросс-ссылки на внешние docs
-    'sphinx_autodoc_typehints',     # Типы из аннотаций Python
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
 ]
 
 templates_path   = ['_templates']
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [
+    '_build',
+    'Thumbs.db',
+    '.DS_Store',
+    'source/modules.rst',   # ← автогенерируется apidoc, нам не нужен
+]
+
+# Подавляем предупреждения об осиротевших документах
+suppress_warnings = [
+    'toc.excluded',         # source/modules.rst исключён намеренно
+]
 language         = 'ru'
 
 # ---------------------------------------------------------------------------
 # Autodoc
 # ---------------------------------------------------------------------------
 autodoc_default_options = {
-    'members':          True,           # Все публичные члены
-    'undoc-members':    True,           # Даже без docstring
-    'show-inheritance': True,           # Родительские классы
-    'private-members':  False,          # Пропускать _private
-    'special-members':  '__init__',     # Но __init__ включаем
+    'members':          True,
+    'undoc-members':    True,
+    'show-inheritance': True,
+    'private-members':  False,
+    'special-members':  '__init__',
 }
 
-autodoc_member_order     = 'bysource'   # Порядок — как в исходнике
-autodoc_typehints        = 'description'# Типы в описании, не в сигнатуре
+autodoc_member_order       = 'bysource'
+autodoc_typehints          = 'description'
+autodoc_typehints_format   = 'short'
 autodoc_inherit_docstrings = True
 
 # ---------------------------------------------------------------------------
 # Napoleon
 # ---------------------------------------------------------------------------
-napoleon_google_docstring       = True
-napoleon_numpy_docstring        = True
-napoleon_include_init_with_doc  = True
-napoleon_attr_annotations       = True
-
-# ---------------------------------------------------------------------------
-# sphinx-autodoc-typehints
-# ---------------------------------------------------------------------------
-always_document_param_types = True
-typehints_fully_qualified   = False
+napoleon_google_docstring      = True
+napoleon_numpy_docstring       = True
+napoleon_include_init_with_doc = True
+napoleon_attr_annotations      = True
 
 # ---------------------------------------------------------------------------
 # Intersphinx
 # ---------------------------------------------------------------------------
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
-    'numpy':  ('https://numpy.org/doc/stable/', None),
 }
 
 # ---------------------------------------------------------------------------
-# HTML / RTD Theme
+# HTML
 # ---------------------------------------------------------------------------
 html_theme       = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 html_theme_options = {
-    'navigation_depth':    6,      # Глубина вложенности в боковом меню
-    'collapse_navigation': False,  # Не сворачивать дерево навигации
-    'titles_only':         False,  # Показывать все заголовки, не только разделы
+    'navigation_depth':    6,
+    'collapse_navigation': False,
+    'titles_only':         False,
     'includehidden':       True,
-    'display_version':     True,
+    # display_version убран — удалён в sphinx-rtd-theme >= 2.0  ← FIX
 }
