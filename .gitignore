@@ -212,3 +212,5 @@ __marimo__/
 count.sh
 compile_proto.py
 test_client.py
+count.py
+logs
