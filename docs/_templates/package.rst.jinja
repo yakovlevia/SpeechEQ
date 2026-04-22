@@ -1,15 +1,18 @@
-{%- set display_name = package.split('.')[-1] %}
+{%- set display_name = (package or root or module | default('')).split('.')[-1] if (package or root or module) else 'Modules' %}
 {{ display_name }}
 {{ '=' * display_name | length }}
 
-.. currentmodule:: {{ package }}
+{%- if package or module %}
+.. currentmodule:: {{ package | default(module) }}
 
-.. automodule:: {{ package }}
+.. automodule:: {{ package | default(module) }}
    :members:
    :undoc-members:
    :show-inheritance:
+{%- endif %}
 
 {%- if subpackages %}
+
 Subpackages
 -----------
 
@@ -23,6 +26,7 @@ Subpackages
 {%- endif %}
 
 {%- if submodules %}
+
 Submodules
 ----------
 

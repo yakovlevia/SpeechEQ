@@ -1,10 +1,10 @@
-{%- set display_name = module.split('.')[-1] %}
+{%- set display_name = (module or package or root | default('')).split('.')[-1] if (module or package or root) else 'Module' %}
 {{ display_name }}
 {{ '=' * display_name | length }}
 
-.. currentmodule:: {{ module }}
+.. currentmodule:: {{ module | default(package) }}
 
-.. automodule:: {{ module }}
+.. automodule:: {{ module | default(package) }}
    :members:
    :undoc-members:
    :show-inheritance:
