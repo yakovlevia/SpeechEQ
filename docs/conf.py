@@ -43,7 +43,7 @@ autodoc_mock_imports = [
     'rotary_embedding_torch', 'pyloudnorm', 'noisereduce',
     'PySide6', 'PySide6.QtCore', 'PySide6.QtWidgets',
     'PySide6.QtGui', 'PySide6.QtUiTools', 'PySide6.QtMultimedia',
-    'PySide6.QtMultimediaWidgets', 'shiboken6',
+    'PySide6.QtMultimediaWidgets', 'shiboken6', "numpy",
 ]
 
 # -- Options for HTML output -------------------------------------------------
