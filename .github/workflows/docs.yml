@@ -34,9 +34,7 @@ jobs:
 
     - name: Regenerate proto files with compatible protobuf version
       run: |
-        # Устанавливаем стабильную версию protobuf, которая генерирует код без KeyError
         pip install protobuf==3.20.3 grpcio-tools==1.48.0
-        # Перегенерируем Python-файлы из .proto
         python -m grpc_tools.protoc \
           -I src/proto \
           --python_out=src/proto \
@@ -45,9 +43,12 @@ jobs:
 
     - name: Install project dependencies (lightweight)
       run: |
-        # Устанавливаем только необходимые для импорта пакеты, исключая torch и PySide6 (они замоканы)
         grep -v -E "torch|PySide6" src/requirements.txt > requirements-light.txt || true
         pip install -r requirements-light.txt
+
+    - name: Generate API documentation with sphinx-apidoc
+      run: |
+        sphinx-apidoc -f -o docs/source src
 
     - name: Build documentation
       run: |

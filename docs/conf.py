@@ -11,11 +11,17 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
+    'sphinx.ext.viewcode',
 ]
 
-# Моки для тяжёлых / графических библиотек, которые не нужны при сборке документации
+autodoc_default_options = {
+    'members': True,
+    'undoc-members': True,
+    'show-inheritance': True,
+}
+autodoc_member_order = 'bysource'
+
 autodoc_mock_imports = [
-    # ML и DSP (тяжелые)
     'torch',
     'torchaudio',
     'speechbrain',
@@ -23,8 +29,6 @@ autodoc_mock_imports = [
     'rotary_embedding_torch',
     'pyloudnorm',
     'noisereduce',
-
-    # PySide6 (Qt)
     'PySide6',
     'PySide6.QtCore',
     'PySide6.QtWidgets',
