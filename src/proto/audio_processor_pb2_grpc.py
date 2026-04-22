@@ -3,9 +3,9 @@
 import grpc
 import warnings
 
-import audio_processor_pb2 as audio__processor__pb2
+import src.proto.audio_processor_pb2 as audio__processor__pb2
 
-GRPC_GENERATED_VERSION = '1.78.0'
+GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
 _version_not_supported = False
 

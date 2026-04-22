@@ -6,7 +6,7 @@ service AudioProcessor {
     rpc ProcessAudio (AudioRequest) returns (AudioResponse) {}
 }
 
-message ProcessingSettings {
+message GrpcProcessingSettings {
     // DSP FLAGS
     bool noise_reduction = 1;
     bool hum_removal = 2;
@@ -34,7 +34,7 @@ message ProcessingSettings {
 message AudioRequest {
     bytes audio_data = 1;
     int32 sample_rate = 2;
-    ProcessingSettings settings = 3;
+    GrpcProcessingSettings settings = 3;
     string request_id = 4;
     string client_version = 5;
 }

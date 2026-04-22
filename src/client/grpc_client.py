@@ -17,7 +17,7 @@ proto_dir = root_dir / "proto"
 if str(proto_dir) not in sys.path:
     sys.path.insert(0, str(proto_dir))
 
-import src.proto.audio_processor_pb2 as audio_processor_pb2
+from src.proto.audio_processor_pb2 import GrpcProcessingSettings, AudioRequest
 from src.proto.audio_processor_pb2_grpc import AudioProcessorStub
 from src.processing.core.settings import ProcessingSettings
 from src.processing.handlers.base import AudioHandler
@@ -174,7 +174,7 @@ class GRPCAudioHandler(AudioHandler):
         try:
             test_audio = np.zeros(160, dtype=np.float32)
             test_bytes = test_audio.tobytes()
-            test_request = audio_processor_pb2.AudioRequest(
+            test_request = AudioRequest(
                 audio_data=test_bytes,
                 sample_rate=16000,
                 request_id="connection_test",
@@ -203,7 +203,7 @@ class GRPCAudioHandler(AudioHandler):
         self.connected = False
         logger.info("Отключение от сервера")
 
-    def _settings_to_proto(self, settings: ProcessingSettings) -> audio_processor_pb2.ProcessingSettings:
+    def _settings_to_proto(self, settings: ProcessingSettings) -> GrpcProcessingSettings:
         """
         Конвертирует настройки обработки в protobuf формат.
 
@@ -211,7 +211,7 @@ class GRPCAudioHandler(AudioHandler):
             settings: Настройки обработки.
 
         Returns:
-            audio_processor_pb2.ProcessingSettings: Настройки в protobuf формате.
+            GrpcProcessingSettings: Настройки в protobuf формате.
         """
         extra_json = ""
         if settings.extra:
@@ -221,7 +221,7 @@ class GRPCAudioHandler(AudioHandler):
             except Exception:
                 extra_json = str(settings.extra)
 
-        return audio_processor_pb2.ProcessingSettings(
+        return GrpcProcessingSettings(
             noise_reduction=settings.noise_reduction,
             hum_removal=settings.hum_removal,
             deesser=settings.deesser,
@@ -260,7 +260,7 @@ class GRPCAudioHandler(AudioHandler):
             return None
 
         audio_bytes = audio.astype(np.float32).tobytes()
-        request = audio_processor_pb2.AudioRequest(
+        request = AudioRequest(
             audio_data=audio_bytes,
             sample_rate=sample_rate,
             settings=self._settings_to_proto(settings),

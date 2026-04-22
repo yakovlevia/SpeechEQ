@@ -19,7 +19,7 @@ import numpy as np
 import grpc
 
 
-import src.proto.audio_processor_pb2 as audio_processor_pb2 
+from src.proto.audio_processor_pb2 import GrpcProcessingSettings, AudioResponse
 from src.proto.audio_processor_pb2_grpc import AudioProcessorServicer, add_AudioProcessorServicer_to_server
 
 from src.processing.handlers.local import LocalAudioHandler
@@ -100,18 +100,18 @@ class AudioProcessorServicer(AudioProcessorServicer):
 
         return settings
 
-    def _settings_to_proto(self, settings: ProcessingSettings) -> audio_processor_pb2.ProcessingSettings:
+    def _settings_to_proto(self, settings: ProcessingSettings) -> GrpcProcessingSettings:
         """Конвертирует ProcessingSettings в protobuf-формат.
 
         Args:
             settings: Объект настроек обработки.
 
         Returns:
-            audio_processor_pb2.ProcessingSettings: Proto-объект.
+            GrpcProcessingSettings: Proto-объект.
         """
         extra_json = json.dumps(settings.extra) if settings.extra else ""
 
-        return audio_processor_pb2.ProcessingSettings(
+        return GrpcProcessingSettings(
             noise_reduction=settings.noise_reduction,
             hum_removal=settings.hum_removal,
             deesser=settings.deesser,
@@ -180,7 +180,7 @@ class AudioProcessorServicer(AudioProcessorServicer):
             context: gRPC-контекст.
 
         Returns:
-            audio_processor_pb2.AudioResponse: Ответ с результатом.
+            AudioResponse: Ответ с результатом.
         """
         self.request_count += 1
         request_id = request.request_id or f"req_{self.request_count}"
@@ -196,7 +196,7 @@ class AudioProcessorServicer(AudioProcessorServicer):
             if audio is None:
                 error_msg = "Не удалось декодировать аудио"
                 logger.error(f"[{request_id}] {error_msg}")
-                return audio_processor_pb2.AudioResponse(
+                return AudioResponse(
                     success=False, error_message=error_msg, request_id=request_id
                 )
 
@@ -226,7 +226,7 @@ class AudioProcessorServicer(AudioProcessorServicer):
             except Exception as e:
                 error_msg = f"Ошибка обработки: {e}"
                 logger.error(f"[{request_id}] {error_msg}\n{traceback.format_exc()}")
-                return audio_processor_pb2.AudioResponse(
+                return AudioResponse(
                     success=False, error_message=error_msg, request_id=request_id
                 )
 
@@ -234,7 +234,7 @@ class AudioProcessorServicer(AudioProcessorServicer):
 
             # Кодирование и отправка ответа
             processed_bytes = self._audio_to_bytes(processed_audio)
-            return audio_processor_pb2.AudioResponse(
+            return AudioResponse(
                 processed_audio=processed_bytes,
                 success=True,
                 error_message="",
@@ -244,7 +244,7 @@ class AudioProcessorServicer(AudioProcessorServicer):
         except Exception as e:
             error_msg = f"Непредвиденная ошибка: {e}"
             logger.error(f"[{request_id}] {error_msg}\n{traceback.format_exc()}")
-            return audio_processor_pb2.AudioResponse(
+            return AudioResponse(
                 success=False, error_message=error_msg, request_id=request_id
             )
         finally:
