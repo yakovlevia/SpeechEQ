@@ -40,9 +40,6 @@ autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
 autodoc_typehints_description_target = 'documented'
 
-# Убираем префиксы модулей из сигнатур классов/функций (напр. file1.MyClass вместо src.client.file1.MyClass)
-add_module_names = False
-
 # Mock imports for heavy/optional dependencies
 autodoc_mock_imports = [
     'PySide6', 'PySide6.QtCore', 'PySide6.QtWidgets',
@@ -58,22 +55,15 @@ html_logo = None
 html_favicon = None
 
 html_theme_options = {
-    'navigation_depth': 6,
+    'navigation_depth': 6,  # Увеличено для глубокой вложенности
     'collapse_navigation': False,
     'sticky_navigation': True,
     'titles_only': False,
     'includehidden': True,
 }
 
-# Sidebar configuration
-html_sidebars = {
-    '**': [
-        'globaltoc.html',
-        'relations.html',
-        'sourcelink.html',
-        'searchbox.html',
-    ]
-}
+# Убираем префикс модуля из заголовков и сигнатур (напр. MyClass вместо src.client.MyClass)
+add_module_names = False
 
 # -- Internationalization ----------------------------------------------------
 language = 'ru'
