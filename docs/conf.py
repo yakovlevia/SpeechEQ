@@ -3,8 +3,11 @@
 
 import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath('../src'))
+docs_dir = Path(__file__).parent.resolve()
+project_root = docs_dir.parent
+sys.path.insert(0, str(project_root))
 
 # -- Project information -----------------------------------------------------
 project = 'SpeechEQ'
