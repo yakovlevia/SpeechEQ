@@ -46,7 +46,6 @@ autodoc_mock_imports = [
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
 html_title = 'SpeechEQ Documentation'
 html_short_title = 'SpeechEQ'
 html_logo = None  # Path to logo if you have one
