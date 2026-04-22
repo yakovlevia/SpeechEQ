@@ -1,14 +1,18 @@
-{%- set display_name = (package or root or module | default('')).split('.')[-1] if (package or root or module) else 'Modules' %}
+{%- set pkg = package | default(module) | default(root) %}
+{%- if pkg %}
+{%- set display_name = pkg.split('.')[-1] %}
 {{ display_name }}
 {{ '=' * display_name | length }}
 
-{%- if package or module %}
-.. currentmodule:: {{ package | default(module) }}
+.. currentmodule:: {{ pkg }}
 
-.. automodule:: {{ package | default(module) }}
+.. automodule:: {{ pkg }}
    :members:
    :undoc-members:
    :show-inheritance:
+{%- else %}
+API Reference
+=============
 {%- endif %}
 
 {%- if subpackages %}
@@ -18,10 +22,9 @@ Subpackages
 
 .. toctree::
    :maxdepth: 5
-   :caption: {{ display_name }}
 
 {%- for sub in subpackages %}
-   {{ sub.split('.')[-1] }} <{{ sub }}>
+   {{ sub }}
 {%- endfor %}
 {%- endif %}
 
@@ -32,9 +35,8 @@ Submodules
 
 .. toctree::
    :maxdepth: 5
-   :caption: {{ display_name }}
 
 {%- for mod in submodules %}
-   {{ mod.split('.')[-1] }} <{{ mod }}>
+   {{ mod }}
 {%- endfor %}
 {%- endif %}

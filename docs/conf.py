@@ -58,7 +58,7 @@ html_logo = None
 html_favicon = None
 
 html_theme_options = {
-    'navigation_depth': 5,
+    'navigation_depth': 6,
     'collapse_navigation': False,
     'sticky_navigation': True,
     'titles_only': False,
