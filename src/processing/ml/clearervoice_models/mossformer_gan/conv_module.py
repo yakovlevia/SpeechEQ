@@ -302,17 +302,7 @@ class DepthwiseConv2d(nn.Module):
         self.lorder = kernel_size
         self.rorder = self.lorder
         self.conv = nn.Conv2d(in_channels, out_channels, [self.lorder+self.rorder-1, 1], [1, 1], groups=in_channels, bias=False)
-        '''
-        self.conv = nn.Conv1d(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            groups=in_channels,
-            stride=stride,
-            padding=padding,
-            bias=bias,
-        )
-        '''
+
     def forward(self, inputs: Tensor) -> Tensor:
         ##input: batch x feature x sequence
         x = torch.unsqueeze(inputs, -1)
