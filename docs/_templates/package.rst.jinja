@@ -1,0 +1,36 @@
+{%- set display_name = fullname.split('.')[-1] %}
+{{ display_name }}
+{{ '=' * display_name | length }}
+
+.. currentmodule:: {{ fullname }}
+
+.. automodule:: {{ fullname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+{%- if subpackages %}
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+   :caption: {{ display_name }}
+
+{%- for sub in subpackages %}
+   {{ sub.split('.')[-1] }} <{{ sub }}>
+{%- endfor %}
+{%- endif %}
+
+{%- if submodules %}
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+   :caption: {{ display_name }}
+
+{%- for mod in submodules %}
+   {{ mod.split('.')[-1] }} <{{ mod }}>
+{%- endfor %}
+{%- endif %}

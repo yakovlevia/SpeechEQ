@@ -1,0 +1,10 @@
+{%- set display_name = fullname.split('.')[-1] %}
+{{ display_name }}
+{{ '=' * display_name | length }}
+
+.. currentmodule:: {{ fullname }}
+
+.. automodule:: {{ fullname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:

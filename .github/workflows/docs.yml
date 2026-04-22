@@ -1,5 +1,4 @@
 name: Deploy Documentation
-
 on:
   push:
     branches: [ main ]
@@ -7,13 +6,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Разрешения для GitHub Pages и деплоя
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Позволяет только один одновременный деплой
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -24,65 +21,61 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-        cache: 'pip'
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libsndfile1 ffmpeg
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsndfile1 ffmpeg
 
-    - name: Install Python dependencies
-      run: |
-        pip install --upgrade pip
-        pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
 
-    - name: Regenerate proto files
-      run: |
-        pip install protobuf==3.20.3 grpcio-tools==1.48.0
-        python -m grpc_tools.protoc \
-          -I src/proto \
-          --python_out=src/proto \
-          --grpc_python_out=src/proto \
-          src/proto/audio_processor.proto
+      - name: Regenerate proto files
+        run: |
+          pip install protobuf==3.20.3 grpcio-tools==1.48.0
+          python -m grpc_tools.protoc \
+            -I src/proto \
+            --python_out=src/proto \
+            --grpc_python_out=src/proto \
+            src/proto/audio_processor.proto
 
-    - name: Install project dependencies (lightweight)
-      run: |
-        # Исключаем тяжёлые зависимости, которые не нужны для генерации docs
-        grep -v -E "^(PySide6)" requirements.txt > requirements-light.txt 2>/dev/null || true
-        pip install -r requirements-light.txt || echo "⚠️ requirements-light.txt not found or empty"
+      - name: Install project dependencies (lightweight)
+        run: |
+          grep -v -E "^(PySide6)" requirements.txt > requirements-light.txt 2>/dev/null || true
+          pip install -r requirements-light.txt || echo "⚠️ requirements-light.txt not found or empty"
 
-    - name: Generate API documentation
-      run: |
-        # Очищаем старые сгенерированные файлы
-        rm -rf docs/source/*.rst
-        # Генерируем .rst файлы с сохранением структуры папок
-        sphinx-apidoc \
-          --force \
-          --separate \
-          --templatedir=docs/_templates \
-          -o docs/source \
-          src
+      - name: Generate API documentation
+        run: |
+          rm -rf docs/source/*.rst
+          sphinx-apidoc \
+            --force \
+            --separate \
+            --templatedir=docs/_templates \
+            -o docs/source \
+            src
 
-    - name: Build HTML documentation
-      run: |
-        cd docs
-        sphinx-build -b html -W --keep-going . _build/html
+      - name: Build HTML documentation
+        run: |
+          cd docs
+          sphinx-build -b html -W --keep-going . _build/html
 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: docs/_build/html/
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/_build/html/
 
-    - name: Deploy to GitHub Pages
-      id: deployment
-      if: github.event_name != 'pull_request'
-      uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        id: deployment
+        if: github.event_name != 'pull_request'
+        uses: actions/deploy-pages@v4

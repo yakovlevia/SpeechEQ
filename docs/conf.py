@@ -7,6 +7,8 @@ from pathlib import Path
 
 docs_dir = Path(__file__).parent.resolve()
 project_root = docs_dir.parent
+
+# Добавляем корень проекта, чтобы импорты вида "src.client..." работали корректно
 sys.path.insert(0, str(project_root))
 
 # -- Project information -----------------------------------------------------
@@ -33,9 +35,13 @@ autodoc_default_options = {
     'show-inheritance': True,
     'member-order': 'bysource',
 }
+
 autodoc_member_order = 'bysource'
 autodoc_typehints = 'description'
 autodoc_typehints_description_target = 'documented'
+
+# Убираем префиксы модулей из сигнатур классов/функций (напр. file1.MyClass вместо src.client.file1.MyClass)
+add_module_names = False
 
 # Mock imports for heavy/optional dependencies
 autodoc_mock_imports = [
@@ -48,21 +54,18 @@ autodoc_mock_imports = [
 html_theme = 'sphinx_rtd_theme'
 html_title = 'SpeechEQ Documentation'
 html_short_title = 'SpeechEQ'
-html_logo = None  # Path to logo if you have one
-html_favicon = None  # Path to favicon if you have one
+html_logo = None
+html_favicon = None
 
 html_theme_options = {
-    'navigation_depth': 4,
+    'navigation_depth': 5,
     'collapse_navigation': False,
     'sticky_navigation': True,
     'titles_only': False,
     'includehidden': True,
 }
 
-# Show full module paths in headings
-add_module_names = True
-
-# Sidebar configuration for better navigation
+# Sidebar configuration
 html_sidebars = {
     '**': [
         'globaltoc.html',
@@ -77,7 +80,7 @@ language = 'ru'
 locale_dirs = ['locale/']
 gettext_compact = False
 
-# -- Intersphinx mapping (optional) ------------------------------------------
+# -- Intersphinx mapping -----------------------------------------------------
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None),
     'torch': ('https://pytorch.org/docs/stable', None),

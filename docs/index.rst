@@ -1,19 +1,18 @@
 SpeechEQ Documentation
 ======================
 
+Добро пожаловать в документацию проекта SpeechEQ.
+
 .. toctree::
-   :maxdepth: 2
-   :caption: Содержание
+   :maxdepth: 5
+   :caption: API Reference
+   :hidden:
 
    source/modules
 
-API Reference
--------------
+Индексы и таблицы
+==================
 
-* :ref:`genindex` — алфавитный указатель всех функций и классов
-* :ref:`modindex` — список всех модулей
-* :ref:`search` — поиск по документации
-
-.. note::
-   Документация сгенерирована автоматически из исходного кода.
-   Структура страниц повторяет структуру папок в проекте ``src/``.
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
