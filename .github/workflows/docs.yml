@@ -31,7 +31,6 @@ jobs:
     - name: Install Python dependencies
       run: |
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
-        # Установка зависимостей вашего проекта
         pip install -r src/requirements.txt
         
     - name: Build documentation
