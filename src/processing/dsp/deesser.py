@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import signal
-from processing.core.base import AudioProcessingMethod
-from processing.core.settings import ProcessingSettings
+from src.processing.core.base import AudioProcessingMethod
+from src.processing.core.settings import ProcessingSettings
 
 
 class DeEsserDSP(AudioProcessingMethod):

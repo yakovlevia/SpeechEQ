@@ -1,8 +1,8 @@
 import numpy as np
 from scipy import signal
 import pyloudnorm as pyln
-from processing.core.base import AudioProcessingMethod
-from processing.core.settings import ProcessingSettings
+from src.processing.core.base import AudioProcessingMethod
+from src.processing.core.settings import ProcessingSettings
 import logging
 
 logger = logging.getLogger(__name__)

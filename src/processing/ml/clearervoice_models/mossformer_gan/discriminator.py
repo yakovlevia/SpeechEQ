@@ -2,7 +2,7 @@ import numpy as np
 import torch.nn.functional as F
 import torch
 import torch.nn as nn
-from processing.ml.clearervoice_models.mossformer_gan.conformer import ConformerBlock
+from src.processing.ml.clearervoice_models.mossformer_gan.conformer import ConformerBlock
 
 
 class LearnableSigmoid(nn.Module):

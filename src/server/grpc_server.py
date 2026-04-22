@@ -18,27 +18,18 @@ from concurrent import futures
 import numpy as np
 import grpc
 
-# Настройка путей для импорта proto-модулей
-current_dir = Path(__file__).parent
-root_dir = current_dir.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
 
-proto_dir = root_dir / "proto"
-if str(proto_dir) not in sys.path:
-    sys.path.insert(0, str(proto_dir))
+import src.proto.audio_processor_pb2 as audio_processor_pb2 
+from src.proto.audio_processor_pb2_grpc import AudioProcessorServicer, add_AudioProcessorServicer_to_server
 
-import audio_processor_pb2
-import audio_processor_pb2_grpc
-
-from processing.handlers.local import LocalAudioHandler
-from processing.core.settings import ProcessingSettings
-from .config import ServerConfig
+from src.processing.handlers.local import LocalAudioHandler
+from src.processing.core.settings import ProcessingSettings
+from src.server.config import ServerConfig
 
 logger = logging.getLogger(__name__)
 
 
-class AudioProcessorServicer(audio_processor_pb2_grpc.AudioProcessorServicer):
+class AudioProcessorServicer(AudioProcessorServicer):
     """Реализация gRPC-сервиса для обработки аудио.
 
     Делегирует обработку аудио экземпляру LocalAudioHandler,
@@ -311,7 +302,7 @@ async def serve(config: ServerConfig, audio_handler: LocalAudioHandler) -> None:
     )
 
     servicer = AudioProcessorServicer(config, audio_handler)
-    audio_processor_pb2_grpc.add_AudioProcessorServicer_to_server(servicer, server)
+    add_AudioProcessorServicer_to_server(servicer, server)
 
     listen_addr = f"{config.host}:{config.port}"
     server.add_insecure_port(listen_addr)

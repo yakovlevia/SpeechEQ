@@ -20,20 +20,20 @@ proto_dir = root_dir / "proto"
 if str(proto_dir) not in sys.path:
     sys.path.insert(0, str(proto_dir))
 
-from server.grpc_server import serve
-from server.config import ServerConfig
+from src.server.grpc_server import serve
+from src.server.config import ServerConfig
 
-from processing.core.processing_logic import AudioProcessingLogic
-from processing.handlers.local import LocalAudioHandler
+from src.processing.core.processing_logic import AudioProcessingLogic
+from src.processing.handlers.local import LocalAudioHandler
 
-from processing.dsp import (
+from src.processing.dsp import (
     NoiseReductionDSP,
     HumRemovalDSP,
     DeEsserDSP,
     SpeechEQDSP,
     LoudnessNormalizationDSP,
 )
-from processing.ml import (
+from src.processing.ml import (
     FRCRNSE16KMethod,
     MossFormerGANSE16KMethod,
     MetricGANPlusMethod,

@@ -9,7 +9,7 @@ from PySide6.QtCore import QTimer, Signal, QObject, Qt
 from PySide6.QtWidgets import QTableWidgetItem, QMessageBox, QHeaderView, QProgressBar, QWidget, QHBoxLayout, QLabel, QTableWidget
 from PySide6.QtGui import QDesktopServices, QColor
 import logging
-from .processing_screen import ProcessingScreenLogic
+from src.client.screens.processing_screen import ProcessingScreenLogic
 
 logger = logging.getLogger(__name__)
 

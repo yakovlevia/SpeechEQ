@@ -15,9 +15,9 @@ from scipy.io import wavfile
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 
-from .video_queue import AudioCleanupTask, TaskStatus
-from .audio_processor import AudioProcessor, AudioSegment
-from .config import AUDIO_CONFIG
+from src.client.video_queue import AudioCleanupTask, TaskStatus
+from src.client.audio_processor import AudioProcessor, AudioSegment
+from src.client.config import AUDIO_CONFIG
 
 logger = logging.getLogger(__name__)
 

@@ -5,8 +5,8 @@ from pathlib import Path
 from threading import Lock
 import tempfile
 
-from processing.core.base import AudioProcessingMethod
-from processing.core.settings import ProcessingSettings
+from src.processing.core.base import AudioProcessingMethod
+from src.processing.core.settings import ProcessingSettings
 from speechbrain.inference.enhancement import SpectralMaskEnhancement
 
 

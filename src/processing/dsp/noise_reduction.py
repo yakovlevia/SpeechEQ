@@ -1,7 +1,7 @@
 import numpy as np
 import noisereduce as nr
-from processing.core.base import AudioProcessingMethod
-from processing.core.settings import ProcessingSettings
+from src.processing.core.base import AudioProcessingMethod
+from src.processing.core.settings import ProcessingSettings
 import logging
 
 logger = logging.getLogger(__name__)

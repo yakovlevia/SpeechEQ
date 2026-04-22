@@ -20,4 +20,4 @@ echo "🖥️  Запуск сервера SpeechEQ"
 echo "=========================================="
 echo ""
 
-python -m server.main "$@"
+python -m src.server.main "$@"

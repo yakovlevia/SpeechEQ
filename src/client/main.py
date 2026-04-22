@@ -12,24 +12,24 @@ from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import QThread
 
-from client.core.main_window import MainWindow
-from client.processing_manager import ProcessingManager
-from client.workers.processing_worker import ProcessingWorker
-from processing.core.processing_logic import AudioProcessingLogic
-from processing.core.settings import ProcessingSettings
-from processing.dsp import (
+from src.client.core.main_window import MainWindow
+from src.client.processing_manager import ProcessingManager
+from src.client.workers.processing_worker import ProcessingWorker
+from src.processing.core.processing_logic import AudioProcessingLogic
+from src.processing.core.settings import ProcessingSettings
+from src.processing.dsp import (
     NoiseReductionDSP,
     HumRemovalDSP,
     DeEsserDSP,
     SpeechEQDSP,
     LoudnessNormalizationDSP
 )
-from processing.ml import (
+from src.processing.ml import (
     FRCRNSE16KMethod,
     MossFormerGANSE16KMethod,
     MetricGANPlusMethod,
 )
-from processing.handlers.local import LocalAudioHandler
+from src.processing.handlers.local import LocalAudioHandler
 
 # Настройка логирования
 logging.basicConfig(

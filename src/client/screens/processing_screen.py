@@ -14,11 +14,11 @@ from PySide6.QtCore import QSettings, Signal, QObject
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
 
-from client.video_queue import AudioCleanupTask
-from processing.core.settings import ProcessingSettings
+from src.client.video_queue import AudioCleanupTask
+from src.processing.core.settings import ProcessingSettings
 import numpy as np
-from client.audio_processor import AudioProcessor
-from client.config import AUDIO_CONFIG
+from src.client.audio_processor import AudioProcessor
+from src.client.config import AUDIO_CONFIG
 
 logger = logging.getLogger(__name__)
 

@@ -12,9 +12,9 @@ from typing import Optional, List, Dict
 import logging
 from pathlib import Path
 
-from .video_queue import AudioCleanupTask, PriorityTaskQueue, TaskStatus
-from .video_processor import VideoProcessor
-from .config import FFMPEG_CONFIG, QUEUE_CONFIG
+from src.client.video_queue import AudioCleanupTask, PriorityTaskQueue, TaskStatus
+from src.client.video_processor import VideoProcessor
+from src.client.config import FFMPEG_CONFIG, QUEUE_CONFIG
 
 logger = logging.getLogger(__name__)
 

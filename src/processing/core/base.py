@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from processing.core.settings import ProcessingSettings
+from src.processing.core.settings import ProcessingSettings
 
 
 class AudioProcessingMethod(ABC):

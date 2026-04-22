@@ -20,4 +20,4 @@ echo "🚀 Запуск клиента SpeechEQ"
 echo "=========================================="
 echo ""
 
-python -m client.main
+python -m src.client.main

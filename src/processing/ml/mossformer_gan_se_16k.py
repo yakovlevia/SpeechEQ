@@ -4,7 +4,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from processing.ml.base_clearervoice import BaseClearerVoiceMethod
+from src.processing.ml.base_clearervoice import BaseClearerVoiceMethod
+from src.processing.ml.clearervoice_models.mossformer_gan.generator import MossFormerGAN_SE_16K
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +48,6 @@ class MossFormerGANSE16KMethod(BaseClearerVoiceMethod):
         return "MossFormerGAN_SE_16K"
 
     def _build_model(self):
-        from processing.ml.clearervoice_models.mossformer_gan.generator import MossFormerGAN_SE_16K
-
         args = self._get_args()
         wrapper = MossFormerGAN_SE_16K(args)
         return wrapper.model

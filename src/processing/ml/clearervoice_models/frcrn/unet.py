@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import processing.ml.clearervoice_models.frcrn.complex_nn as complex_nn
-from processing.ml.clearervoice_models.frcrn.se_layer import SELayer
+import src.processing.ml.clearervoice_models.frcrn.complex_nn as complex_nn
+from src.processing.ml.clearervoice_models.frcrn.se_layer import SELayer
 
 class Encoder(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding=None, complex=False, padding_mode="zeros"):

@@ -12,8 +12,8 @@ import asyncio
 import uuid
 import logging
 
-from processing.handlers.base import AudioHandler
-from processing.core.settings import ProcessingSettings
+from src.processing.handlers.base import AudioHandler
+from src.processing.core.settings import ProcessingSettings
 
 logger = logging.getLogger(__name__)
 

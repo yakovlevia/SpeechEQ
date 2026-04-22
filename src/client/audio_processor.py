@@ -16,9 +16,9 @@ from dataclasses import dataclass
 from typing import Optional, List, Tuple, Any, AsyncGenerator
 import logging
 import tempfile
-from .config import FFMPEG_CONFIG
-from processing.handlers.base import AudioHandler
-from processing.core.settings import ProcessingSettings
+from src.client.config import FFMPEG_CONFIG
+from src.processing.handlers.base import AudioHandler
+from src.processing.core.settings import ProcessingSettings
 
 
 logger = logging.getLogger(__name__)

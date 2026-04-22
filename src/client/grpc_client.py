@@ -17,10 +17,10 @@ proto_dir = root_dir / "proto"
 if str(proto_dir) not in sys.path:
     sys.path.insert(0, str(proto_dir))
 
-import audio_processor_pb2
-import audio_processor_pb2_grpc
-from processing.core.settings import ProcessingSettings
-from processing.handlers.base import AudioHandler
+import src.proto.audio_processor_pb2 as audio_processor_pb2
+from src.proto.audio_processor_pb2_grpc import AudioProcessorStub
+from src.processing.core.settings import ProcessingSettings
+from src.processing.handlers.base import AudioHandler
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class GRPCAudioHandler(AudioHandler):
         self.timeout: float = timeout
         self.max_retries: int = max_retries
         self.channel: Optional[grpc.Channel] = None
-        self.stub: Optional[audio_processor_pb2_grpc.AudioProcessorStub] = None
+        self.stub: Optional[AudioProcessorStub] = None
         self.connected: bool = False
         self.client_version: str = "1.0.0"
         self._lock: threading.Lock = threading.Lock()
@@ -110,7 +110,7 @@ class GRPCAudioHandler(AudioHandler):
                 ]
             )
             grpc.channel_ready_future(self.channel).result(timeout=5)
-            self.stub = audio_processor_pb2_grpc.AudioProcessorStub(self.channel)
+            self.stub = AudioProcessorStub(self.channel)
             self.connected = True
             self._stop_check = False
             self._start_connection_check()

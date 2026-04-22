@@ -5,7 +5,7 @@ from torch import nn, einsum
 
 from einops import rearrange
 from rotary_embedding_torch import RotaryEmbedding
-from processing.ml.clearervoice_models.mossformer_gan.conv_module import ConvModule
+from src.processing.ml.clearervoice_models.mossformer_gan.conv_module import ConvModule
 # helper functions
 
 def exists(val):

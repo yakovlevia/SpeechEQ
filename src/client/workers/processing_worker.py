@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional, Dict, Set, List, Any
 from PySide6.QtCore import QObject, Signal, Slot
 
-from client.video_queue import TaskStatus
+from src.client.video_queue import TaskStatus
 
 logger = logging.getLogger(__name__)
 

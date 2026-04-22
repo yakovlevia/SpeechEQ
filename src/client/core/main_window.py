@@ -12,12 +12,12 @@ from PySide6.QtCore import QThread, QSize, Signal, QTimer
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QHeaderView, QSizePolicy
 from PySide6.QtGui import QCloseEvent, QResizeEvent
 
-from client.ui.ui_mainwindow import Ui_MainWindow
-from client.screens.main_screen import MainScreenLogic
-from client.screens.connection_screen import ConnectionScreenLogic, ConnectionWorker
-from client.screens.processing_screen import ProcessingScreenLogic
-from client.screens.progress_screen import ProgressScreenLogic
-from client.grpc_client import GRPCConnectionManager
+from src.client.ui.ui_mainwindow import Ui_MainWindow
+from src.client.screens.main_screen import MainScreenLogic
+from src.client.screens.connection_screen import ConnectionScreenLogic, ConnectionWorker
+from src.client.screens.processing_screen import ProcessingScreenLogic
+from src.client.screens.progress_screen import ProgressScreenLogic
+from src.client.grpc_client import GRPCConnectionManager
 
 logger = logging.getLogger(__name__)
 

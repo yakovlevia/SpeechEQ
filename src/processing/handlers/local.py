@@ -1,7 +1,7 @@
 # processing/handlers/local.py
 import numpy as np
-from .base import AudioHandler
-from processing.core.settings import ProcessingSettings
+from src.processing.handlers.base import AudioHandler
+from src.processing.core.settings import ProcessingSettings
 
 
 class LocalAudioHandler(AudioHandler):

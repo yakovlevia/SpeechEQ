@@ -11,8 +11,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from processing.core.base import AudioProcessingMethod
-from processing.core.settings import ProcessingSettings
+from src.processing.core.base import AudioProcessingMethod
+from src.processing.core.settings import ProcessingSettings
 
 logger = logging.getLogger(__name__)
 

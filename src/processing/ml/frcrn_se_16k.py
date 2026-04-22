@@ -4,7 +4,8 @@ import time
 import torch
 import torch.nn.functional as F
 
-from processing.ml.base_clearervoice import BaseClearerVoiceMethod
+from src.processing.ml.base_clearervoice import BaseClearerVoiceMethod
+from src.processing.ml.clearervoice_models.frcrn.frcrn import FRCRN_SE_16K
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,6 @@ class FRCRNSE16KMethod(BaseClearerVoiceMethod):
         return "FRCRN_SE_16K"
 
     def _build_model(self):
-        from processing.ml.clearervoice_models.frcrn.frcrn import FRCRN_SE_16K
 
         args = self._get_args()
         wrapper = FRCRN_SE_16K(args)

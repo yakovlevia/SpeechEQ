@@ -3,10 +3,10 @@ import torch
 import torch.nn.functional as F
 import os
 import sys
-sys.path.append(os.path.dirname(__file__))
-from .conv_stft import ConvSTFT, ConviSTFT
+
+from src.processing.ml.clearervoice_models.frcrn.conv_stft import ConvSTFT, ConviSTFT
 import numpy as np
-from processing.ml.clearervoice_models.frcrn.unet import UNet
+from src.processing.ml.clearervoice_models.frcrn.unet import UNet
 
 class FRCRN_Wrapper_StandAlone(nn.Module):
     def __init__(self, args):
