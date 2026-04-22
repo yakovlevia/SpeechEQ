@@ -4,8 +4,8 @@ import sys
 sys.path.insert(0, os.path.abspath('../src'))
 
 project = 'SpeechEQ'
-copyright = '2026, Your Name'
-author = 'Your Name'
+copyright = '2026, Ivan Yakovlev'
+author = 'Ivan Yakovlev'
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -13,21 +13,18 @@ extensions = [
     'sphinx_autodoc_typehints',
 ]
 
-# Модули, которые не нужно импортировать реально
+# Моки для тяжёлых / графических библиотек, которые не нужны при сборке документации
 autodoc_mock_imports = [
+    # ML и DSP (тяжелые)
     'torch',
     'torchaudio',
-    'numpy',
-    'scipy',
-    'librosa',
-    'soundfile',
-    'pydub',
-    'pyaudio',
-    'yaml',
-    'tqdm',
-    'grpc',
-    'grpc.aio',
-    'google.protobuf',
+    'speechbrain',
+    'einops',
+    'rotary_embedding_torch',
+    'pyloudnorm',
+    'noisereduce',
+
+    # PySide6 (Qt)
     'PySide6',
     'PySide6.QtCore',
     'PySide6.QtWidgets',

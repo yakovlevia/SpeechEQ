@@ -13,39 +13,57 @@ permissions:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout
+    - name: Checkout repository
       uses: actions/checkout@v4
-      
+
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        
-    - name: Install system dependencies (для звуковых библиотек)
+
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y libsndfile1 ffmpeg
-        
-    - name: Install Python dependencies
+
+    - name: Install Sphinx and extensions
       run: |
         pip install sphinx sphinx-rtd-theme sphinx-autodoc-typehints
-        pip install -r src/requirements.txt
-        
+
+    - name: Regenerate proto files with compatible protobuf version
+      run: |
+        # Устанавливаем стабильную версию protobuf, которая генерирует код без KeyError
+        pip install protobuf==3.20.3 grpcio-tools==1.48.0
+        # Перегенерируем Python-файлы из .proto
+        python -m grpc_tools.protoc \
+          -I src/proto \
+          --python_out=src/proto \
+          --grpc_python_out=src/proto \
+          src/proto/audio_processor.proto
+
+    - name: Install project dependencies (lightweight)
+      run: |
+        # Устанавливаем только необходимые для импорта пакеты, исключая torch и PySide6 (они замоканы)
+        grep -v -E "torch|PySide6" src/requirements.txt > requirements-light.txt || true
+        pip install -r requirements-light.txt
+
     - name: Build documentation
       run: |
         cd docs
         sphinx-build -b html . _build/html
-        
-    - name: Setup Pages
+
+    - name: Setup GitHub Pages
       uses: actions/configure-pages@v4
-      
-    - name: Upload artifact
+      with:
+        enablement: true
+
+    - name: Upload documentation artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: docs/_build/html/
-        
+
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
