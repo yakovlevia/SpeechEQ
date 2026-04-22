@@ -99,10 +99,12 @@ def get_spectrogram_axis(sig_length, sr, n_fft=2048, hop=512):
 
 def istft(stft_matrix, hop_length=None, win_length=None, window='hann',
           center=True, normalized=False, onesided=True, length=None):
-    # keunwoochoi's implementation
-    # https://gist.github.com/keunwoochoi/2f349e72cc941f6f10d4adf9b0d3f37e
 
-    """stft_matrix = (batch, freq, time, complex)
+    """
+    keunwoochoi's implementation
+    https://gist.github.com/keunwoochoi/2f349e72cc941f6f10d4adf9b0d3f37e
+
+    stft_matrix = (batch, freq, time, complex)
 
     All based on librosa
         - http://librosa.github.io/librosa/_modules/librosa/core/spectrum.html#istft
@@ -157,7 +159,7 @@ def istft(stft_matrix, hop_length=None, win_length=None, window='hann',
 
 def angle(tensor):
     """
-    Return angle of a complex tensor with shape (*, 2).
+    Return angle of a complex tensor with shape (\*, 2).
     """
     return torch.atan2(tensor[...,1], tensor[...,0])
 
@@ -174,7 +176,7 @@ def magphase(spec, power=1.):
 
 def realimag(mag, phase):
     """
-    Combine a magnitude spectrogram and a phase spectrogram to a complex-valued spectrogram with shape (*, 2)
+    Combine a magnitude spectrogram and a phase spectrogram to a complex-valued spectrogram with shape (\*, 2)
     """
     spec_real = mag * torch.cos(phase)
     spec_imag = mag * torch.sin(phase)

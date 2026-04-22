@@ -122,20 +122,18 @@ class GlobalLayerNorm(nn.Module):
 
 
 class CumulativeLayerNorm(nn.LayerNorm):
-    """Calculate Cumulative Layer Normalization.
+    """
+    Calculate Cumulative Layer Normalization.
 
-       Arguments
-       ---------
-       dim : int
-        Dimension that you want to normalize.
-       elementwise_affine : True
-        Learnable per-element affine parameters.
+    Arguments:
+        dim (int): Dimension that you want to normalize.
+        elementwise_affine (bool, optional): Learnable per-element affine parameters.
+            Defaults to True.
 
-    Example
-    -------
-    >>> x = torch.randn(5, 10, 20)
-    >>> CLN = CumulativeLayerNorm(10)
-    >>> x_norm = CLN(x)
+    Example:
+        >>> x = torch.randn(5, 10, 20)
+        >>> CLN = CumulativeLayerNorm(10)
+        >>> x_norm = CLN(x)
     """
 
     def __init__(self, dim, elementwise_affine=True):

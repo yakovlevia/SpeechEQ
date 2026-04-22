@@ -28,16 +28,6 @@ logger = logging.getLogger(__name__)
 class AudioSegment:
     """
     Класс для представления аудио сегмента, извлеченного из видео.
-    
-    Attributes:
-        segment_id (int): Уникальный идентификатор сегмента.
-        start_time (float): Время начала сегмента в секундах.
-        end_time (float): Время окончания сегмента в секундах.
-        duration (float): Длительность сегмента в секундах.
-        audio_data (np.ndarray): Аудио данные в формате float32.
-        sample_rate (int): Частота дискретизации аудио.
-        video_path (str): Путь к исходному видеофайлу.
-        task_id (str): Идентификатор задачи обработки.
     """
     segment_id: int
     start_time: float
