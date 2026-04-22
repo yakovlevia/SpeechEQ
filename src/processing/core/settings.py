@@ -55,8 +55,7 @@ class ProcessingSettings:
     
     # ========== ML PARAMS ==========
     
-    # ML Model Name (UI: combo "None" / "v1" / "v2")
-    ml_model_name: str = ""  # "" | "v1" | "v2"
+    ml_model_name: str = ""  # "" | "metricgan_plus" | "FRCRN_SE_16K" | "MossFormerGAN_SE_16K"
     
     # ML Strength (фиксированный, можно добавить slider позже)
     ml_strength: float = 0.3
@@ -80,8 +79,14 @@ class ProcessingSettings:
         self.normalization_target = max(-30.0, min(-10.0, self.normalization_target))
         
         # Validate ml_model_name
-        if self.ml_model_name not in ("", "v1", "v2"):
+        if self.ml_model_name not in (
+            "",
+            "metricgan_plus",
+            "FRCRN_SE_16K",
+            "MossFormerGAN_SE_16K",
+        ):
             self.ml_model_name = ""
+
         
         # Sync ml_model flag with ml_model_name
         self.ml_model = bool(self.ml_model_name)

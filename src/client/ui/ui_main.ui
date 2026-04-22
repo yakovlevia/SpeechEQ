@@ -1196,7 +1196,7 @@
              <property name="minimumSize">
               <size>
                <width>0</width>
-               <height>40</height>
+               <height>50</height>
               </size>
              </property>
              <property name="maxVisibleItems">
@@ -1205,6 +1205,16 @@
              <item>
               <property name="text">
                <string>Не использовать ML-модели</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>FRCRN</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>MossFormerGAN_SE</string>
               </property>
              </item>
              <item>
@@ -1552,7 +1562,7 @@
         <item>
          <widget class="QLabel" name="formatsLabel">
           <property name="text">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11px; color:#64748b;&quot;&gt;Поддерживаемые форматы: MP4, MOV, MKV, AVI, FLV, WMV&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11px; color:#64748b;&quot;&gt;Поддерживаемые форматы: MP4, MOV, MKV&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>

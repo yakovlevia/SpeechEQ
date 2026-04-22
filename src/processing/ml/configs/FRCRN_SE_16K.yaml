@@ -1,0 +1,14 @@
+#!/bin/bash
+mode: 'inference'
+use_cuda: 1
+num_gpu: 1
+sampling_rate: 16000
+network: "FRCRN_SE_16K"
+
+one_time_decode_length: 120
+decode_window: 1
+
+win_type: 'hanning'
+win_len: 640
+win_inc: 320
+fft_len: 640

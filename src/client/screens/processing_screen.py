@@ -8,9 +8,12 @@ import threading
 import asyncio
 from pathlib import Path
 from typing import List, Optional, Any
+
+import torch
 from PySide6.QtCore import QSettings, Signal, QObject
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QListWidgetItem
 from PySide6.QtGui import QDragEnterEvent, QDropEvent
+
 from client.video_queue import AudioCleanupTask
 from processing.core.settings import ProcessingSettings
 import numpy as np
@@ -203,9 +206,6 @@ class ProcessingScreenLogic(QObject):
 
         Args:
             event: Событие перетаскивания.
-
-        Raises:
-            TypeError: Если event имеет неправильный тип.
         """
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -216,9 +216,6 @@ class ProcessingScreenLogic(QObject):
 
         Args:
             event: Событие сброса.
-
-        Raises:
-            TypeError: Если event имеет неправильный тип.
         """
         files = [
             url.toLocalFile() for url in event.mimeData().urls()
@@ -426,10 +423,20 @@ class ProcessingScreenLogic(QObject):
         settings.normalization_target = float(self.ui.lufsSpinBox.value())
 
         # ---------- ML MODEL ----------
-        ml_enabled = self.ui.mlModelCombo.currentIndex() == 1
+        ml_index = self.ui.mlModelCombo.currentIndex()
 
-        settings.ml_model = ml_enabled
-        settings.ml_model_name = "metricgan_plus" if ml_enabled else None
+        if ml_index == 1:
+            settings.ml_model = True
+            settings.ml_model_name = "FRCRN_SE_16K"
+        elif ml_index == 2:
+            settings.ml_model = True
+            settings.ml_model_name = "MossFormerGAN_SE_16K"
+        elif ml_index == 3:
+            settings.ml_model = True
+            settings.ml_model_name = "metricgan_plus"
+        else:
+            settings.ml_model = False
+            settings.ml_model_name = ""
 
         return settings
 
@@ -439,9 +446,6 @@ class ProcessingScreenLogic(QObject):
 
         Returns:
             list: Список объектов AudioCleanupTask.
-
-        Raises:
-            Exception: При ошибках получения длительности видео.
         """
         if not self.selected_files:
             QMessageBox.warning(
@@ -512,6 +516,67 @@ class ProcessingScreenLogic(QObject):
 
         return tasks
 
+    def _should_warn_about_slow_local_ml(self) -> bool:
+        """
+        Проверяет, нужно ли предупреждать пользователя о медленной локальной обработке без CUDA.
+
+        Условия предупреждения:
+        - выбран локальный режим
+        - CUDA недоступна
+        - выбрана тяжёлая ML-модель (FRCRN / MossFormerGAN)
+        - MetricGAN+ не предупреждаем
+        """
+        if not hasattr(self.parent, 'connection_screen'):
+            return False
+
+        current_mode = self.parent.connection_screen.get_current_mode_name()
+        if current_mode != "локальный":
+            return False
+
+        if torch.cuda.is_available():
+            return False
+
+        settings = self.get_processing_settings()
+        if not settings.ml_model or not settings.ml_model_name:
+            return False
+
+        # MetricGAN+ можно использовать на CPU без этого предупреждения
+        if settings.ml_model_name == "metricgan_plus":
+            return False
+
+        return True
+
+    def _confirm_slow_local_ml_processing(self) -> bool:
+        """
+        Показывает предупреждение о медленной локальной ML-обработке без CUDA.
+
+        Returns:
+            bool: True если пользователь согласен продолжить, иначе False.
+        """
+        settings = self.get_processing_settings()
+
+        model_display_names = {
+            "FRCRN_SE_16K": "FRCRN",
+            "MossFormerGAN_SE_16K": "MossFormerGAN_SE",
+            "metricgan_plus": "MetricGAN+",
+        }
+        model_name = model_display_names.get(settings.ml_model_name, settings.ml_model_name)
+
+        reply = QMessageBox.question(
+            self.ui.centralwidget,
+            "Предупреждение о производительности",
+            "Обнаружено, что CUDA недоступна, а обработка будет выполняться в локальном режиме на CPU.\n\n"
+            f"Вы выбрали ML-модель: {model_name}.\n\n"
+            "Без поддержки CUDA нейросетевая обработка может быть очень долгой, "
+            "особенно для длинных видео. В таком режиме рекомендуется не использовать "
+            "тяжёлые ML-модели.\n\n"
+            "Продолжить обработку несмотря на это предупреждение?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        return reply == QMessageBox.Yes
+
     def on_start_processing(self) -> None:
         """Обрабатывает нажатие кнопки начала обработки."""
         if not self.selected_files:
@@ -553,6 +618,11 @@ class ProcessingScreenLogic(QObject):
                 QMessageBox.Yes | QMessageBox.No
             )
             if reply == QMessageBox.No:
+                return
+
+        if self._should_warn_about_slow_local_ml():
+            if not self._confirm_slow_local_ml_processing():
+                logger.info("Пользователь отменил запуск обработки после предупреждения о медленной CPU ML-обработке")
                 return
 
         tasks = self.create_tasks()

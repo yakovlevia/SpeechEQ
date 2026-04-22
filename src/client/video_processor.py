@@ -13,6 +13,7 @@ import logging
 import numpy as np
 from scipy.io import wavfile
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 from .video_queue import AudioCleanupTask, TaskStatus
 from .audio_processor import AudioProcessor, AudioSegment
@@ -55,14 +56,27 @@ class VideoProcessor:
         else:
             self.segment_semaphore = asyncio.Semaphore(self.max_concurrent_segments)
             logger.info(f"Создан внутренний семафор (макс={max_concurrent_segments})")
-        
+
         self.ffmpeg_path = ffmpeg_path
         self.ffprobe_path = ffprobe_path
         self.audio_processor = AudioProcessor(ffmpeg_path)
-        
+
         self._processing_tasks: Dict[str, asyncio.Task] = {}
         self._audio_segments: Dict[str, List[AudioSegment]] = {}
         self._processed_segments: Dict[str, List[AudioSegment]] = {}
+
+        # Отдельные executors:
+        # - CPU-heavy задачи (ML/DSP обработка сегментов)
+        # - I/O задачи (запись wav, списков, файловые операции)
+        self._cpu_executor = ThreadPoolExecutor(
+            max_workers=1,
+            thread_name_prefix="speecheq-cpu"
+        )
+        self._io_executor = ThreadPoolExecutor(
+            max_workers=2,
+            thread_name_prefix="speecheq-io"
+        )
+        logger.info("Созданы executors: cpu_workers=1, io_workers=2")
 
     async def calculate_total_segments(self, video_path: str) -> int:
         """Рассчитывает ожидаемое количество аудио-сегментов для видео.
@@ -133,15 +147,15 @@ class VideoProcessor:
         video_ext = input_path.suffix
         output_parent = Path(task.output_path).parent
         base_dir = output_parent
-        
+
         video_output_dir = base_dir / ".video"
         audio_dir = base_dir / ".audio" / task.task_id
         clean_audio_dir = audio_dir / "clean"
         tmp_audio_dir = audio_dir / "tmp"
-        
+
         for directory in [video_output_dir, audio_dir, clean_audio_dir, tmp_audio_dir]:
             directory.mkdir(parents=True, exist_ok=True)
-        
+
         video_output_path = video_output_dir / f"{task.task_id}_noaudio{video_ext}"
         return video_output_dir, video_output_path, audio_dir, clean_audio_dir, tmp_audio_dir
 
@@ -157,52 +171,55 @@ class VideoProcessor:
         """
         video_output_path = None
         pending_tasks: set[asyncio.Task] = set()
-        
+
         try:
             logger.info(f"Начало обработки: {Path(task.input_path).name} (ID: {task.task_id[:12]}...)")
-            
+
             if not os.path.exists(task.input_path):
                 raise FileNotFoundError(f"Файл не найден: {task.input_path}")
+
             if manager:
                 await manager.check_global_pause()
+
             if task.is_cancelled():
                 logger.info(f"Задача отменена до начала: {task.input_path}")
                 return
-                
+
             await task.set_status(TaskStatus.PROCESSING)
-            
-            # Проверка соединения только для gRPC-обработчика (локальные не требуют)
+
             if task.handler.__class__.__name__ == "GRPCAudioHandler" and not getattr(task.handler, 'connected', True):
-                logger.error(f"Нет подключения к серверу обработки")
+                logger.error("Нет подключения к серверу обработки")
                 raise ConnectionError("Нет подключения к серверу обработки")
-                
+
             if task.is_cancelled():
                 return
+
             if task.duration <= 0:
                 duration = await self.audio_processor.get_video_duration_fast(task.input_path)
                 await task.set_duration(duration)
             else:
                 duration = task.duration
-                
+
             if task.is_cancelled():
                 return
+
             if task.total_segments > 0:
                 total_segments = task.total_segments
                 logger.info(f"Используются предвычисленные сегменты: {total_segments}")
             else:
                 total_segments = await self.calculate_total_segments(task.input_path)
                 await task.set_total_segments(total_segments)
-                
+
             logger.info(
                 f"Видео {Path(task.input_path).name}: {duration:.1f}s, "
                 f"сегментов: {total_segments}, обработано ранее: {task.cleaned_segments}"
             )
-            
+
             _, video_output_path, audio_dir, clean_audio_dir, tmp_audio_dir = self._get_task_dirs(task)
+
             if task.is_cancelled():
                 return
-                
-            # Загрузка списка уже обработанных сегментов для восстановления прогресса
+
             existing_segments = set()
             segments_list_path = clean_audio_dir / "segments_list.txt"
             if segments_list_path.exists():
@@ -221,12 +238,11 @@ class VideoProcessor:
             # ------------------------------------------------------------------
             segment_count = len(existing_segments)
             segments_list: list[str] = list(existing_segments)
+
             if segment_count > 0:
                 await task.update_progress(segment_count)
                 logger.info(f"Прогресс восстановлен: {segment_count}/{total_segments}")
-                
-            loop = asyncio.get_running_loop()
-            
+
             async for segment in self.audio_processor.extract_audio_segments(
                 video_path=task.input_path,
                 segment_duration=AUDIO_CONFIG["segment_duration"],
@@ -235,85 +251,106 @@ class VideoProcessor:
                 task_id=task.task_id,
             ):
                 if await task.should_exit():
-                    await self._cancel_pending_tasks(pending_tasks, segments_list_path, segments_list, task.input_path)
+                    await self._cancel_pending_tasks(
+                        pending_tasks,
+                        segments_list_path,
+                        segments_list,
+                        task.input_path
+                    )
                     return
+
                 if manager:
                     await manager.check_global_pause()
-                
-                # Проверка соединения только для gRPC-обработчика
+
                 if task.handler.__class__.__name__ == "GRPCAudioHandler" and not getattr(task.handler, 'connected', True):
-                    logger.error(f"Потеряно соединение с сервером обработки")
+                    logger.error("Потеряно соединение с сервером обработки")
                     raise ConnectionError("Потеряно соединение с сервером обработки")
-                    
+
                 segment_filename = f"{task.task_id}_segment_{segment.segment_id:04d}.wav"
                 if segment_filename in existing_segments:
                     logger.debug(f"Сегмент {segment.segment_id} уже обработан")
                     continue
-                    
+
                 seg_task = asyncio.create_task(
-                    self._process_segment_limited(segment, task.handler, task.handler_settings, task.task_id)
+                    self._process_segment_limited(
+                        segment,
+                        task.handler,
+                        task.handler_settings,
+                        task.task_id
+                    )
                 )
                 pending_tasks.add(seg_task)
-                
-                # Периодическая проверка завершённых задач
+
+                # Периодически забираем уже завершившиеся задачи
                 done, pending_tasks = await asyncio.wait(
-                    pending_tasks, timeout=0.0, return_when=asyncio.FIRST_COMPLETED
+                    pending_tasks,
+                    timeout=0.05,
+                    return_when=asyncio.FIRST_COMPLETED
                 )
-                for finished in done:
-                    if await task.should_exit():
-                        await self._cancel_pending_tasks(pending_tasks, segments_list_path, segments_list, task.input_path)
-                        return
-                    if manager:
-                        await manager.check_global_pause()
-                    
-                    # Проверка соединения только для gRPC-обработчика
-                    if task.handler.__class__.__name__ == "GRPCAudioHandler" and not getattr(task.handler, 'connected', True):
-                        logger.error(f"Потеряно соединение с сервером обработки")
-                        raise ConnectionError("Потеряно соединение с сервером обработки")
-                        
-                    processed_segment = finished.result()
-                    await self._save_processed_segment(processed_segment, clean_audio_dir, task.task_id, segments_list)
-                    segment_count += 1
-                    await task.increment_progress()
-                    
-                    if segment_count % 50 == 0:
-                        logger.info(f"Обработано сегментов: {segment_count}/{total_segments}")
-                        
-            # Обработка оставшихся задач
+
+                if done:
+                    segment_count = await self._consume_finished_tasks(
+                        finished_tasks=done,
+                        task=task,
+                        manager=manager,
+                        clean_audio_dir=clean_audio_dir,
+                        segments_list_path=segments_list_path,
+                        segments_list=segments_list,
+                        total_segments=total_segments,
+                        segment_count=segment_count,
+                    )
+
+            # ------------------------------------------------------------------
+            # ДОЖИДАЕМСЯ ВСЕХ ОСТАВШИХСЯ ЗАДАЧ И СОХРАНЯЕМ ИХ РЕЗУЛЬТАТЫ
+            # ------------------------------------------------------------------
             if pending_tasks:
-                done, _ = await asyncio.wait(pending_tasks)
-                for finished in done:
-                    if await task.should_exit():
-                        await self._save_segments_list_safe(segments_list_path, segments_list, task.input_path)
-                        return
-                    if manager:
-                        await manager.check_global_pause()
-                    
-                    # Проверка соединения только для gRPC-обработчика
-                    if task.handler.__class__.__name__ == "GRPCAudioHandler" and not getattr(task.handler, 'connected', True):
-                        logger.error(f"Потеряно соединение с сервером обработки")
-                        raise ConnectionError("Потеряно соединение с сервером обработки")
-                        
-                    processed_segment = finished.result()
-                    await self._save_processed_segment(processed_segment, clean_audio_dir, task.task_id, segments_list)
-                    segment_count += 1
-                    await task.increment_progress()
-                    
+                logger.info(
+                    f"Ожидание завершения оставшихся задач сегментов: {len(pending_tasks)}"
+                )
+
+                while pending_tasks:
+                    done, pending_tasks = await asyncio.wait(
+                        pending_tasks,
+                        return_when=asyncio.FIRST_COMPLETED
+                    )
+
+                    segment_count = await self._consume_finished_tasks(
+                        finished_tasks=done,
+                        task=task,
+                        manager=manager,
+                        clean_audio_dir=clean_audio_dir,
+                        segments_list_path=segments_list_path,
+                        segments_list=segments_list,
+                        total_segments=total_segments,
+                        segment_count=segment_count,
+                    )
+
+
             logger.info(f"Всего обработано сегментов: {segment_count}")
+
             if segment_count == 0:
                 raise RuntimeError("Не было обработано ни одного аудио-сегмента")
+
             if segment_count != total_segments:
-                logger.warning(f"Расчётное ({total_segments}) и фактическое ({segment_count}) количество сегментов не совпадают")
+                logger.warning(
+                    f"Расчётное ({total_segments}) и фактическое ({segment_count}) "
+                    f"количество сегментов не совпадают"
+                )
                 await task.set_total_segments(segment_count)
-                
+
             if await task.should_exit():
-                await self._save_segments_list_safe(segments_list_path, segments_list, task.input_path)
+                await self._save_segments_list_safe(
+                    segments_list_path,
+                    segments_list,
+                    task.input_path
+                )
                 return
 
             # ------------------------------------------------------------------
             # 2. ПЕРЕХОД В СТАТУС ПОСТОБРАБОТКИ
             # ------------------------------------------------------------------
             await self.set_post_processing_status(task)
+
             if await task.should_exit():
                 return
 
@@ -327,9 +364,12 @@ class VideoProcessor:
             # 4. СОХРАНЕНИЕ СПИСКА СЕГМЕНТОВ
             # ------------------------------------------------------------------
             if segments_list:
+                loop = asyncio.get_running_loop()
                 await loop.run_in_executor(
-                    None, lambda: self._write_segments_list(segments_list_path, segments_list)
+                    self._io_executor,
+                    lambda: self._write_segments_list(segments_list_path, segments_list)
                 )
+
             if await task.should_exit():
                 return
 
@@ -342,10 +382,11 @@ class VideoProcessor:
                 segment_duration=AUDIO_CONFIG["segment_duration"],
                 overlap_duration=AUDIO_CONFIG["overlap_duration"],
             )
+
             if task.total_segments > 0:
                 await task.update_progress(task.total_segments)
                 logger.info("Прогресс обновлён до 100% после сборки аудио")
-                
+
             if await task.should_exit():
                 return
 
@@ -357,20 +398,25 @@ class VideoProcessor:
                 video_without_audio=str(video_output_path),
                 assembled_audio_path=assembled_audio_path
             )
+
             if task.total_segments > 0:
                 await task.update_progress(task.total_segments)
                 logger.info(f"Финальный прогресс: {task.cleaned_segments}/{task.total_segments}")
-                
+
             logger.info(f"Обработка завершена: {Path(task.input_path).name}, сегментов: {segment_count}")
-            
+
         except ConnectionError as e:
             logger.error(f"Ошибка соединения при обработке {Path(task.input_path).name}: {e}")
             if task.get_status_sync() != TaskStatus.FAILED:
                 await task.set_status(TaskStatus.FAILED, str(e))
         except asyncio.CancelledError:
             logger.info(f"Обработка отменена: {Path(task.input_path).name}")
-            await self._cancel_pending_tasks(pending_tasks, segments_list_path if 'segments_list_path' in locals() else None, 
-                                           segments_list if 'segments_list' in locals() else None, task.input_path)
+            await self._cancel_pending_tasks(
+                pending_tasks,
+                segments_list_path if 'segments_list_path' in locals() else None,
+                segments_list if 'segments_list' in locals() else None,
+                task.input_path
+            )
             raise
         except Exception as e:
             logger.exception(f"Ошибка при обработке {Path(task.input_path).name}: {e}")
@@ -379,6 +425,71 @@ class VideoProcessor:
             raise
         finally:
             await self._cleanup_temp_files(video_output_path, task)
+
+
+    async def _consume_finished_tasks(
+        self,
+        finished_tasks: set[asyncio.Task],
+        task: AudioCleanupTask,
+        manager,
+        clean_audio_dir: Path,
+        segments_list_path: Path,
+        segments_list: list[str],
+        total_segments: int,
+        segment_count: int,
+    ) -> int:
+        """
+        Забирает завершённые задачи сегментов, сохраняет их на диск
+        и обновляет прогресс.
+
+        Args:
+            finished_tasks: Набор завершённых asyncio.Task.
+            task: Текущая видео-задача.
+            manager: ProcessingManager или None.
+            clean_audio_dir: Папка для сохранения очищенных сегментов.
+            segments_list_path: Путь к segments_list.txt.
+            segments_list: Список имён сохранённых сегментов.
+            total_segments: Общее количество сегментов.
+            segment_count: Текущее количество уже сохранённых сегментов.
+
+        Returns:
+            int: Обновлённый segment_count.
+        """
+        for finished in finished_tasks:
+            if await task.should_exit():
+                await self._save_segments_list_safe(
+                    segments_list_path,
+                    segments_list,
+                    task.input_path
+                )
+                return segment_count
+
+            if manager:
+                await manager.check_global_pause()
+
+            if (
+                task.handler.__class__.__name__ == "GRPCAudioHandler"
+                and not getattr(task.handler, "connected", True)
+            ):
+                logger.error("Потеряно соединение с сервером обработки")
+                raise ConnectionError("Потеряно соединение с сервером обработки")
+
+            processed_segment = finished.result()
+
+            await self._save_processed_segment(
+                processed_segment,
+                clean_audio_dir,
+                task.task_id,
+                segments_list
+            )
+
+            segment_count += 1
+            await task.increment_progress()
+
+            if segment_count % 10 == 0:
+                logger.info(f"Обработано сегментов: {segment_count}/{total_segments}")
+
+        return segment_count
 
     async def _cancel_pending_tasks(
         self,
@@ -425,7 +536,8 @@ class VideoProcessor:
         try:
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(
-                None, lambda: self._write_segments_list(segments_list_path, segments_list)
+                self._io_executor,
+                lambda: self._write_segments_list(segments_list_path, segments_list)
             )
             logger.info("Список сегментов сохранён")
         except Exception as e:
@@ -456,10 +568,10 @@ class VideoProcessor:
         self,
         task: AudioCleanupTask,
         audio_dir: Path,
-        segment_duration: float = None,  
+        segment_duration: float = None,
         overlap_duration: float = None
     ) -> Path:
-
+        """Собирает итоговое аудио из обработанных сегментов."""
         if segment_duration is None:
             segment_duration = AUDIO_CONFIG["segment_duration"]
 
@@ -506,7 +618,6 @@ class VideoProcessor:
         fade_in = np.linspace(0.0, 1.0, overlap_samples, dtype=np.float32)
 
         for i, seg_file in enumerate(segment_files):
-
             sr_seg, seg_data = wavfile.read(audio_dir / seg_file)
 
             if sr_seg != sr:
@@ -533,7 +644,6 @@ class VideoProcessor:
             actual_overlap = overlap_end - overlap_start
 
             if actual_overlap > 0:
-
                 result_audio[overlap_start:overlap_end] = (
                     result_audio[overlap_start:overlap_end] * fade_out[:actual_overlap]
                     + seg_data[:actual_overlap] * fade_in[:actual_overlap]
@@ -550,9 +660,8 @@ class VideoProcessor:
         output_wav_path = audio_dir.parent / f"{task.task_id}_assembled.wav"
 
         loop = asyncio.get_running_loop()
-
         await loop.run_in_executor(
-            None,
+            self._io_executor,
             lambda: wavfile.write(output_wav_path, sr, result_audio_int16)
         )
 
@@ -584,7 +693,7 @@ class VideoProcessor:
         """
         output_path = Path(task.output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         cmd = [
             self.ffmpeg_path, "-i", video_without_audio, "-i", str(assembled_audio_path),
             "-c:v", "copy", "-c:a", "aac",
@@ -594,15 +703,15 @@ class VideoProcessor:
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         _, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             raise RuntimeError(f"Ошибка ffmpeg при склейке: {stderr.decode()}")
-            
+
         try:
             assembled_audio_path.unlink()
         except Exception as e:
             logger.warning(f"Не удалось удалить временное аудио {assembled_audio_path.name}: {e}")
-            
+
         logger.info(f"Аудио успешно склеено с видео: {output_path.name}")
 
     async def _save_processed_segment(
@@ -623,17 +732,18 @@ class VideoProcessor:
         wav_filename = f"{task_id}_segment_{processed_segment.segment_id:04d}.wav"
         wav_path = audio_dir / wav_filename
         audio_data = processed_segment.audio_data
-        
+
         if audio_data.dtype != np.int16:
             audio_data = np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
-            
+
         loop = asyncio.get_running_loop()
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(
-                    None, lambda: wavfile.write(wav_path, processed_segment.sample_rate, audio_data)
+                    self._io_executor,
+                    lambda: wavfile.write(wav_path, processed_segment.sample_rate, audio_data)
                 ),
-                timeout=5.0
+                timeout=60.0
             )
             segments_list.append(wav_filename)
         except asyncio.TimeoutError:
@@ -665,7 +775,11 @@ class VideoProcessor:
         async with self.segment_semaphore:
             loop = asyncio.get_running_loop()
             processed = await loop.run_in_executor(
-                None, self.audio_processor.process_audio_segment, segment, handler, handler_settings
+                self._cpu_executor,
+                self.audio_processor.process_audio_segment,
+                segment,
+                handler,
+                handler_settings
             )
             if task_id:
                 processed.task_id = task_id + "_processed"
@@ -726,17 +840,17 @@ class VideoProcessor:
             max_concurrent: Максимальное количество параллельных обработок.
         """
         semaphore = asyncio.Semaphore(max_concurrent)
-        
+
         async def process_with_semaphore(task: AudioCleanupTask):
             async with semaphore:
                 return await self.process_video(task)
-                
+
         processing_tasks = [
             asyncio.create_task(process_with_semaphore(task)) for task in tasks
         ]
         for i, task_obj in enumerate(tasks):
             self._processing_tasks[task_obj.input_path] = processing_tasks[i]
-            
+
         try:
             await asyncio.gather(*processing_tasks)
         finally:
@@ -799,3 +913,15 @@ class VideoProcessor:
             List[AudioSegment]: Список обработанных сегментов или пустой список.
         """
         return self._processed_segments.get(video_path, [])
+
+    def shutdown_executors(self) -> None:
+        """Корректно завершает внутренние executors."""
+        try:
+            self._cpu_executor.shutdown(wait=False, cancel_futures=False)
+        except Exception as e:
+            logger.warning(f"Ошибка остановки CPU executor: {e}")
+
+        try:
+            self._io_executor.shutdown(wait=False, cancel_futures=False)
+        except Exception as e:
+            logger.warning(f"Ошибка остановки IO executor: {e}")

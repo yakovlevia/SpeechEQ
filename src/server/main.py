@@ -33,8 +33,11 @@ from processing.dsp import (
     SpeechEQDSP,
     LoudnessNormalizationDSP,
 )
-
-from processing.ml.metricgan_plus import MetricGANPlusMethod
+from processing.ml import (
+    FRCRNSE16KMethod,
+    MossFormerGANSE16KMethod,
+    MetricGANPlusMethod,
+)
 
 
 def setup_logging(debug: bool = False) -> None:
@@ -69,15 +72,16 @@ def setup_logging(debug: bool = False) -> None:
 
 
 def setup_processing_pipeline() -> tuple[LocalAudioHandler, AudioProcessingLogic]:
-    """Создаёт и настраивает пайплайн обработки аудио.
+    """
+    Настройка пайплайна обработки аудио.
 
-    Формирует цепочку методов в строгом порядке:
-    1. MetricGAN+ (ML) — комплексное восстановление речи (шум, гулы, искажения)
-    2. NoiseReductionDSP — доочистка остаточного нестационарного шума
+    Создаёт цепочку методов для улучшения речи в следующем порядке:
+    1. FRCRN / MossFormerGAN / MetricGAN+ (ML) — основное улучшение и очистка речи
+    2. NoiseReductionDSP — опциональная мягкая доочистка остаточного шума
     3. HumRemovalDSP — точечное удаление сетевого гула 50/60 Гц и гармоник
     4. DeEsserDSP — подавление сибилянтов (шипящих звуков)
     5. SpeechEQDSP — эквализация под речевой диапазон (финальный тембр)
-    6. LoudnessNormalizationDSP — нормализация громкости (LUFS) и true‑peak лимитинг
+    6. LoudnessNormalizationDSP — нормализация громкости (LUFS) и true-peak лимитинг
 
     ML-модель должна идти первой, так как она обучена на сыром сигнале.
     DSP-методы после неё лишь доводят звук и не создают артефактов.
@@ -89,14 +93,15 @@ def setup_processing_pipeline() -> tuple[LocalAudioHandler, AudioProcessingLogic
     logger = logging.getLogger(__name__)
     logger.info("Инициализация пайплайна обработки")
 
-    # Порядок методов критичен — см. docstring функции
     processing_methods = [
-        MetricGANPlusMethod(),        # ML улучшение речи
-        NoiseReductionDSP(),          # Шумоподавление
-        HumRemovalDSP(),              # Удаление гула 50/60 Гц
-        DeEsserDSP(),                 # Подавление шипящих звуков
-        SpeechEQDSP(),                # Эквализация под речевой диапазон
-        LoudnessNormalizationDSP(),   # Нормализация громкости
+        FRCRNSE16KMethod(preload=True),           # ML улучшение речи
+        MossFormerGANSE16KMethod(preload=True),   # ML улучшение речи
+        MetricGANPlusMethod(preload=True),        # ML улучшение речи
+        NoiseReductionDSP(),                      # Шумоподавление
+        HumRemovalDSP(),                          # Удаление гула 50/60 Гц
+        DeEsserDSP(),                             # Подавление шипящих звуков
+        SpeechEQDSP(),                            # Эквализация под речевой диапазон
+        LoudnessNormalizationDSP(),               # Нормализация громкости
     ]
 
     processing_logic = AudioProcessingLogic(
