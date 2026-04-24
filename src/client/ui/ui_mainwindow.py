@@ -443,45 +443,51 @@ class Ui_MainWindow(object):
         self.stackedWidget.setObjectName(u"stackedWidget")
         self.mainScreen = QWidget()
         self.mainScreen.setObjectName(u"mainScreen")
-        self.verticalLayout_2 = QVBoxLayout(self.mainScreen)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.verticalLayout_2.setContentsMargins(50, 50, 50, 50)
-        self.verticalSpacer_top = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.horizontalLayout_main = QHBoxLayout(self.mainScreen)
+        self.horizontalLayout_main.setObjectName(u"horizontalLayout_main")
+        self.horizontalLayout_main.setContentsMargins(60, 40, 60, 40)
+        self.logoImageLabel = QLabel(self.mainScreen)
+        self.logoImageLabel.setObjectName(u"logoImageLabel")
+        self.logoImageLabel.setMinimumSize(QSize(400, 400))
+        self.logoImageLabel.setMaximumSize(QSize(800, 800))
+        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.logoImageLabel.sizePolicy().hasHeightForWidth())
+        self.logoImageLabel.setSizePolicy(sizePolicy)
+        self.logoImageLabel.setScaledContents(False)
+        self.logoImageLabel.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_2.addItem(self.verticalSpacer_top)
+        self.horizontalLayout_main.addWidget(self.logoImageLabel)
 
-        self.logoLabel = QLabel(self.mainScreen)
-        self.logoLabel.setObjectName(u"logoLabel")
-        self.logoLabel.setAlignment(Qt.AlignCenter)
-        self.logoLabel.setStyleSheet(u"font-size: 72pt; font-weight: bold; color: #3b82f6; border: none; padding: 0px; margin: 0px; letter-spacing: 4px;")
+        self.rightColumnLayout = QVBoxLayout()
+        self.rightColumnLayout.setSpacing(20)
+        self.rightColumnLayout.setObjectName(u"rightColumnLayout")
+        self.verticalSpacer_top_right = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_2.addWidget(self.logoLabel)
+        self.rightColumnLayout.addItem(self.verticalSpacer_top_right)
 
         self.appTitleLabel = QLabel(self.mainScreen)
         self.appTitleLabel.setObjectName(u"appTitleLabel")
         self.appTitleLabel.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_2.addWidget(self.appTitleLabel)
-
-        self.verticalSpacer_1 = QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.verticalLayout_2.addItem(self.verticalSpacer_1)
+        self.rightColumnLayout.addWidget(self.appTitleLabel)
 
         self.descriptionLabel = QLabel(self.mainScreen)
         self.descriptionLabel.setObjectName(u"descriptionLabel")
         self.descriptionLabel.setAlignment(Qt.AlignCenter)
 
-        self.verticalLayout_2.addWidget(self.descriptionLabel)
+        self.rightColumnLayout.addWidget(self.descriptionLabel)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_mid_right = QSpacerItem(20, 30, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_2.addItem(self.verticalSpacer_2)
+        self.rightColumnLayout.addItem(self.verticalSpacer_mid_right)
 
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalSpacer_left = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalLayout_buttons = QHBoxLayout()
+        self.horizontalLayout_buttons.setObjectName(u"horizontalLayout_buttons")
+        self.horizontalSpacer_left_btn = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_left)
+        self.horizontalLayout_buttons.addItem(self.horizontalSpacer_left_btn)
 
         self.aboutProjectBtn = QPushButton(self.mainScreen)
         self.aboutProjectBtn.setObjectName(u"aboutProjectBtn")
@@ -491,40 +497,43 @@ class Ui_MainWindow(object):
         font.setBold(True)
         self.aboutProjectBtn.setFont(font)
 
-        self.horizontalLayout_2.addWidget(self.aboutProjectBtn)
+        self.horizontalLayout_buttons.addWidget(self.aboutProjectBtn)
 
-        self.horizontalSpacer_mid = QSpacerItem(30, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_mid_btn1 = QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_mid)
+        self.horizontalLayout_buttons.addItem(self.horizontalSpacer_mid_btn1)
 
         self.instructionBtn = QPushButton(self.mainScreen)
         self.instructionBtn.setObjectName(u"instructionBtn")
         self.instructionBtn.setMinimumSize(QSize(180, 55))
         self.instructionBtn.setFont(font)
 
-        self.horizontalLayout_2.addWidget(self.instructionBtn)
+        self.horizontalLayout_buttons.addWidget(self.instructionBtn)
 
-        self.horizontalSpacer_mid2 = QSpacerItem(30, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_mid_btn2 = QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_mid2)
+        self.horizontalLayout_buttons.addItem(self.horizontalSpacer_mid_btn2)
 
         self.licenseBtn = QPushButton(self.mainScreen)
         self.licenseBtn.setObjectName(u"licenseBtn")
         self.licenseBtn.setMinimumSize(QSize(180, 55))
         self.licenseBtn.setFont(font)
 
-        self.horizontalLayout_2.addWidget(self.licenseBtn)
+        self.horizontalLayout_buttons.addWidget(self.licenseBtn)
 
-        self.horizontalSpacer_right = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.horizontalSpacer_right_btn = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_right)
+        self.horizontalLayout_buttons.addItem(self.horizontalSpacer_right_btn)
 
 
-        self.verticalLayout_2.addLayout(self.horizontalLayout_2)
+        self.rightColumnLayout.addLayout(self.horizontalLayout_buttons)
 
-        self.verticalSpacer_bottom = QSpacerItem(20, 50, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer_bottom_right = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.verticalLayout_2.addItem(self.verticalSpacer_bottom)
+        self.rightColumnLayout.addItem(self.verticalSpacer_bottom_right)
+
+
+        self.horizontalLayout_main.addLayout(self.rightColumnLayout)
 
         self.stackedWidget.addWidget(self.mainScreen)
         self.connectionScreen = QWidget()
@@ -924,11 +933,11 @@ class Ui_MainWindow(object):
         self.progressTitleLabel = QLabel(self.progressScreen)
         self.progressTitleLabel.setObjectName(u"progressTitleLabel")
         self.progressTitleLabel.setAlignment(Qt.AlignCenter)
-        sizePolicy = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        sizePolicy.setHorizontalStretch(1)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.progressTitleLabel.sizePolicy().hasHeightForWidth())
-        self.progressTitleLabel.setSizePolicy(sizePolicy)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.progressTitleLabel.sizePolicy().hasHeightForWidth())
+        self.progressTitleLabel.setSizePolicy(sizePolicy1)
 
         self.titleLayout.addWidget(self.progressTitleLabel)
 
@@ -966,11 +975,11 @@ class Ui_MainWindow(object):
         self.taskTable.setHorizontalHeaderItem(4, __qtablewidgetitem4)
         self.taskTable.setObjectName(u"taskTable")
         self.taskTable.setMinimumSize(QSize(0, 200))
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        sizePolicy1.setHorizontalStretch(0)
-        sizePolicy1.setVerticalStretch(1)
-        sizePolicy1.setHeightForWidth(self.taskTable.sizePolicy().hasHeightForWidth())
-        self.taskTable.setSizePolicy(sizePolicy1)
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(1)
+        sizePolicy2.setHeightForWidth(self.taskTable.sizePolicy().hasHeightForWidth())
+        self.taskTable.setSizePolicy(sizePolicy2)
         self.taskTable.setFont(font1)
         self.taskTable.setAlternatingRowColors(True)
         self.taskTable.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -1139,11 +1148,11 @@ class Ui_MainWindow(object):
         self.mainScreenBtn.setObjectName(u"mainScreenBtn")
         self.mainScreenBtn.setFont(font3)
         self.mainScreenBtn.setMinimumSize(QSize(0, 56))
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        sizePolicy2.setHorizontalStretch(1)
-        sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.mainScreenBtn.sizePolicy().hasHeightForWidth())
-        self.mainScreenBtn.setSizePolicy(sizePolicy2)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(1)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.mainScreenBtn.sizePolicy().hasHeightForWidth())
+        self.mainScreenBtn.setSizePolicy(sizePolicy3)
 
         self.horizontalLayout_8.addWidget(self.mainScreenBtn)
 
@@ -1151,8 +1160,8 @@ class Ui_MainWindow(object):
         self.connectionScreenBtn.setObjectName(u"connectionScreenBtn")
         self.connectionScreenBtn.setFont(font3)
         self.connectionScreenBtn.setMinimumSize(QSize(0, 56))
-        sizePolicy2.setHeightForWidth(self.connectionScreenBtn.sizePolicy().hasHeightForWidth())
-        self.connectionScreenBtn.setSizePolicy(sizePolicy2)
+        sizePolicy3.setHeightForWidth(self.connectionScreenBtn.sizePolicy().hasHeightForWidth())
+        self.connectionScreenBtn.setSizePolicy(sizePolicy3)
 
         self.horizontalLayout_8.addWidget(self.connectionScreenBtn)
 
@@ -1160,8 +1169,8 @@ class Ui_MainWindow(object):
         self.processingScreenBtn.setObjectName(u"processingScreenBtn")
         self.processingScreenBtn.setFont(font3)
         self.processingScreenBtn.setMinimumSize(QSize(0, 56))
-        sizePolicy2.setHeightForWidth(self.processingScreenBtn.sizePolicy().hasHeightForWidth())
-        self.processingScreenBtn.setSizePolicy(sizePolicy2)
+        sizePolicy3.setHeightForWidth(self.processingScreenBtn.sizePolicy().hasHeightForWidth())
+        self.processingScreenBtn.setSizePolicy(sizePolicy3)
 
         self.horizontalLayout_8.addWidget(self.processingScreenBtn)
 
@@ -1169,8 +1178,8 @@ class Ui_MainWindow(object):
         self.progressScreenBtn.setObjectName(u"progressScreenBtn")
         self.progressScreenBtn.setFont(font3)
         self.progressScreenBtn.setMinimumSize(QSize(0, 56))
-        sizePolicy2.setHeightForWidth(self.progressScreenBtn.sizePolicy().hasHeightForWidth())
-        self.progressScreenBtn.setSizePolicy(sizePolicy2)
+        sizePolicy3.setHeightForWidth(self.progressScreenBtn.sizePolicy().hasHeightForWidth())
+        self.progressScreenBtn.setSizePolicy(sizePolicy3)
 
         self.horizontalLayout_8.addWidget(self.progressScreenBtn)
 
@@ -1189,9 +1198,20 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"SpeechEQ v1.0", None))
-        self.logoLabel.setText(QCoreApplication.translate("MainWindow", u"SPEECH EQ", None))
-        self.appTitleLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:32pt; font-weight:700; color:#1e293b;\">SpeechEQ</span><br/><span style=\" font-size:14pt; color:#64748b;\">\u0412\u0435\u0440\u0441\u0438\u044f 1.0</span></p></body></html>", None))
-        self.descriptionLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:16pt; color:#334155;\">\u041f\u0440\u043e\u0444\u0435\u0441\u0441\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0438 \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u0435 \u0430\u0443\u0434\u0438\u043e</span></p><p align=\"center\"><span style=\" font-size:12pt; color:#64748b;\">\u041f\u043e\u0434\u0430\u0432\u043b\u0435\u043d\u0438\u0435 \u0448\u0443\u043c\u0430, \u043d\u043e\u0440\u043c\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u0433\u0440\u043e\u043c\u043a\u043e\u0441\u0442\u0438, \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u0433\u0443\u043b\u0430 \u0438 \u044d\u0445\u0430</span></p></body></html>", None))
+        self.logoImageLabel.setText("")
+        self.appTitleLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p align=\"center\"><span style=\" font-size:36pt; font-weight:700; color:#1e293b;\">SpeechEQ</span><br/><span style=\" font-size:14pt; color:#64748b;\">\u0412\u0435\u0440\u0441\u0438\u044f 1.0</span></p></body></html>", None))
+        self.descriptionLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body>\n"
+"<p align=\"center\" style=\"line-height: 1.5; margin-bottom: 15px;\"><span style=\" font-size:16pt; color:#334155;\">\u041f\u0440\u043e\u0444\u0435\u0441\u0441\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0438 \u0443\u043b\u0443\u0447\u0448\u0435\u043d\u0438\u0435 \u0440\u0435\u0447\u0438 \u0432 \u0432\u0438\u0434\u0435\u043e</span></p>\n"
+"<div align=\"center\" style=\"line-height: 2.2;\">\n"
+"<span style=\" font-size:12pt; color:#475569;\">\n"
+"\u2713 \u0428\u0443\u043c\u043e\u043f\u043e\u0434\u0430\u0432\u043b\u0435\u043d\u0438\u0435 (DSP + \u043d\u0435\u0439\u0440\u043e\u0441\u0435\u0442\u0438)<br>\n"
+"\u2713 \u0423\u0434\u0430\u043b\u0435\u043d\u0438\u0435 \u0433\u0443\u043b\u0430 50/60 \u0413\u0446 \u0438 \u0434\u0435-\u044d\u0441\u0441\u0435\u0440<br>\n"
+"\u2713 \u042d\u043a\u0432\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u043f\u043e\u0434 \u0440\u0435\u0447\u044c \u0438 \u043d\u043e\u0440\u043c\u0430\u043b\u0438"
+                        "\u0437\u0430\u0446\u0438\u044f \u0433\u0440\u043e\u043c\u043a\u043e\u0441\u0442\u0438 (LUFS)<br>\n"
+"\u2713 \u041f\u0430\u043a\u0435\u0442\u043d\u0430\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0430 \u0432\u0438\u0434\u0435\u043e \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u043a\u043e\u0434\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f\n"
+"</span>\n"
+"</div>\n"
+"</body></html>", None))
         self.aboutProjectBtn.setText(QCoreApplication.translate("MainWindow", u"\u041e \u041f\u0420\u041e\u0415\u041a\u0422\u0415", None))
         self.instructionBtn.setText(QCoreApplication.translate("MainWindow", u"\u0418\u041d\u0421\u0422\u0420\u0423\u041a\u0426\u0418\u042f", None))
         self.licenseBtn.setText(QCoreApplication.translate("MainWindow", u"\u041b\u0418\u0426\u0415\u041d\u0417\u0418\u042f", None))
