@@ -43,9 +43,6 @@ class ProcessingSettings:
     # EQ - профиль эквализации (фиксированный)
     eq_profile: str = "speech_clarity"  # "speech_clarity" | "broadcast" | "flat"
     
-    # Noise Reduction - размер FFT окна (фиксированный)
-    noise_reduction_fft_size: int = 2048
-    
     # De-Esser - временные параметры (фиксированные)
     deesser_attack_time: float = 0.005   # 5 мс
     deesser_release_time: float = 0.050  # 50 мс

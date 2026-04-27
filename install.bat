@@ -1,71 +1,221 @@
 @echo off
-setlocal enabledelayedexpansion
+chcp 65001 >nul
+setlocal EnableDelayedExpansion
 
 echo ==========================================
-echo    Установка SpeechEQ
+echo        SpeechEQ Installer
 echo ==========================================
 echo.
 
-:: Определяем директорию скрипта
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
-echo  Текущая директория: %cd%
+echo Current directory: %cd%
 echo.
 
-:: Проверка Python
+:: =========================
+:: LICENSE CHECK
+:: =========================
+
+if not exist "LICENSE" (
+    echo [X] LICENSE file not found.
+    pause
+    exit /b 1
+)
+
+echo [i] Opening license window...
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"Add-Type -AssemblyName System.Windows.Forms; ^
+Add-Type -AssemblyName System.Drawing; ^
+$license = Get-Content 'LICENSE' -Raw; ^
+$form = New-Object System.Windows.Forms.Form; ^
+$form.Text = 'SpeechEQ License Agreement'; ^
+$form.Width = 720; ^
+$form.Height = 520; ^
+$form.StartPosition = 'CenterScreen'; ^
+$form.Font = New-Object System.Drawing.Font('Segoe UI',9); ^
+$form.BackColor = [System.Drawing.Color]::White; ^
+
+$text = New-Object System.Windows.Forms.RichTextBox; ^
+$text.Dock = 'Fill'; ^
+$text.ReadOnly = $true; ^
+$text.ScrollBars = 'Vertical'; ^
+$text.Text = $license; ^
+$text.BackColor = 'White'; ^
+$text.BorderStyle = 'None'; ^
+
+$panel = New-Object System.Windows.Forms.Panel; ^
+$panel.Dock = 'Bottom'; ^
+$panel.Height = 60; ^
+
+$accept = New-Object System.Windows.Forms.Button; ^
+$accept.Text = 'Accept'; ^
+$accept.Width = 100; ^
+$accept.Height = 32; ^
+$accept.Left = 480; ^
+$accept.Top = 15; ^
+$accept.DialogResult = [System.Windows.Forms.DialogResult]::OK; ^
+
+$decline = New-Object System.Windows.Forms.Button; ^
+$decline.Text = 'Decline'; ^
+$decline.Width = 100; ^
+$decline.Height = 32; ^
+$decline.Left = 590; ^
+$decline.Top = 15; ^
+$decline.DialogResult = [System.Windows.Forms.DialogResult]::Cancel; ^
+
+$panel.Controls.Add($accept); ^
+$panel.Controls.Add($decline); ^
+$form.Controls.Add($text); ^
+$form.Controls.Add($panel); ^
+$result = $form.ShowDialog(); ^
+if ($result -eq 'OK') { exit 0 } else { exit 1 }"
+
+if %errorlevel% neq 0 (
+    echo [X] License declined. Installation cancelled.
+    pause
+    exit /b 1
+)
+
+echo [+] License accepted.
+echo.
+
+:: =========================
+:: FFMPEG CHECK
+:: =========================
+
+echo Checking FFmpeg...
+
+where ffmpeg >nul 2>&1
+
+if %errorlevel% neq 0 (
+
+    echo FFmpeg not found.
+
+    where winget >nul 2>&1
+
+    if %errorlevel% neq 0 (
+
+        echo Winget not available.
+        echo Please download FFmpeg manually:
+        echo https://www.gyan.dev/ffmpeg/builds/
+
+    ) else (
+
+        echo Installing FFmpeg...
+        winget install --id Gyan.FFmpeg -e --accept-package-agreements --accept-source-agreements
+
+        if !errorlevel! neq 0 (
+            echo [!] FFmpeg installation failed.
+        ) else (
+            echo [+] FFmpeg installed. Restart terminal if PATH not updated.
+        )
+
+    )
+
+) else (
+
+    echo [+] FFmpeg already installed.
+
+)
+
+echo.
+
+:: =========================
+:: PYTHON CHECK
+:: =========================
+
+:: =========================
+:: PYTHON CHECK / INSTALL
+:: =========================
+
+echo Checking Python...
+
 where python >nul 2>&1
+
 if %errorlevel% neq 0 (
-    echo [X] Python не установлен.
-    echo     Установите Python с https://www.python.org/downloads/
-    echo     В процессе установки ОБЯЗАТЕЛЬНО отметьте "Add Python to PATH"
-    pause
-    exit /b 1
+
+    echo Python not found.
+
+    where winget >nul 2>&1
+    if %errorlevel% neq 0 (
+
+        echo [X] Winget not available.
+        echo Please install Python manually:
+        echo https://www.python.org/downloads/
+        pause
+        exit /b 1
+
+    ) else (
+
+        echo Installing Python...
+
+        winget install --id Python.Python.3 -e --accept-package-agreements --accept-source-agreements
+
+        if %errorlevel% neq 0 (
+            echo [X] Python installation failed.
+            pause
+            exit /b 1
+        )
+
+        echo Python installed. Reloading PATH...
+
+        set "PATH=%PATH%;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\;C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python311\Scripts\"
+
+    )
+
 )
 
-:: Получаем версию Python
 for /f "tokens=2" %%i in ('python --version 2^>^&1') do set PYTHON_VERSION=%%i
-echo  Версия Python: %PYTHON_VERSION%
+
+echo Python version: %PYTHON_VERSION%
 echo.
 
-:: Создание виртуального окружения
-if exist "venv" (
-    echo  Удаление старого виртуального окружения...
-    rmdir /s /q venv
-)
-echo  Создание виртуального окружения...
+:: =========================
+:: CREATE VENV
+:: =========================
+
+if exist venv rmdir /s /q venv
+
+echo Creating virtual environment...
+
 python -m venv venv
+
 if %errorlevel% neq 0 (
-    echo [X] Ошибка создания виртуального окружения
+    echo [X] Failed to create venv
     pause
     exit /b 1
 )
+
 echo.
 
-:: Установка зависимостей
-echo  Установка Python зависимостей...
+:: =========================
+:: INSTALL DEPENDENCIES
+:: =========================
+
+echo Installing dependencies...
+
 call venv\Scripts\activate.bat
+
 python -m pip install --upgrade pip setuptools wheel
 
-:: Установка пакетов
-python -m pip install numpy>=1.21.0 librosa>=0.10.0 tqdm>=4.65.0 psutil>=5.9.0 soundfile>=0.12.0 PySide6==6.10.0 grpcio>=1.50.0 grpcio-tools>=1.50.0 protobuf>=4.21.0 torch>=2.0.0 scipy>=1.10.0 pyloudnorm>=0.1.1 noisereduce>=3.0.0 speechbrain>=0.5.15 einops>=0.7.0 rotary-embedding-torch>=0.3.0 packaging>=23.0
+if not exist requirements.txt (
+    echo [X] requirements.txt not found.
+    pause
+    exit /b 1
+)
+
+python -m pip install -r requirements.txt
 
 echo.
 echo ==========================================
-echo    Установка завершена!
+echo        Installation completed
 echo ==========================================
 echo.
-echo  Активировать окружение:
-echo    venv\Scripts\activate
-echo.
-echo  Запуск клиента:
-echo    run_app.bat
-echo.
-echo  Запуск сервера:
-echo    run_server.bat
-echo.
-echo  Деактивация окружения:
-echo    deactivate
-echo.
+echo Run client : run_app.bat
+echo Run server : run_server.bat
 echo ==========================================
+echo.
+
 pause
