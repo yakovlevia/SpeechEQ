@@ -434,6 +434,9 @@ class ProcessingScreenLogic(QObject):
         elif ml_index == 3:
             settings.ml_model = True
             settings.ml_model_name = "metricgan_plus"
+        elif ml_index == 4:
+            settings.ml_model = True
+            settings.ml_model_name = "DeepFilterNet"
         else:
             settings.ml_model = False
             settings.ml_model_name = ""
@@ -559,6 +562,7 @@ class ProcessingScreenLogic(QObject):
             "FRCRN_SE_16K": "FRCRN",
             "MossFormerGAN_SE_16K": "MossFormerGAN_SE",
             "metricgan_plus": "MetricGAN+",
+            "DeepFilterNet": "DeepFilterNet",
         }
         model_name = model_display_names.get(settings.ml_model_name, settings.ml_model_name)
 

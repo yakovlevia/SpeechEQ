@@ -1,10 +1,13 @@
 import logging
+import os
 import time
+from pathlib import Path
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
-from src.processing.ml.base_clearervoice import BaseClearerVoiceMethod
+from src.processing.ml.base_clearervoice import BaseClearerVoiceMethod, _total_ram_gb
 from src.processing.ml.clearervoice_models.frcrn.frcrn import FRCRN_SE_16K
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,9 @@ class FRCRNSE16KMethod(BaseClearerVoiceMethod):
     - подробное логирование для диагностики производительности
     """
 
+    # Кастомные ComplexConv2d не поддерживаются torchinductor — compile отключён
+    _supports_compile = False
+
     def __init__(self, preload: bool = True):
         super().__init__(
             model_filename="FRCRN_SE_16K.pt",
@@ -28,14 +34,28 @@ class FRCRNSE16KMethod(BaseClearerVoiceMethod):
             preload=preload,
         )
 
+        ram_gb = _total_ram_gb()
+
         if self.device.type == "cuda":
-            self.max_single_pass_seconds = min(self.max_single_pass_seconds, 20)
-            self.segment_window_seconds = 12
-            self.segment_stride_seconds = 9
+            self.max_single_pass_seconds = 120
+            self.segment_window_seconds = 30
+            self.segment_stride_seconds = 24
         else:
-            self.max_single_pass_seconds = min(self.max_single_pass_seconds, 10)
-            self.segment_window_seconds = 8
-            self.segment_stride_seconds = 6
+            # Ограничиваем размер сегмента по доступной RAM.
+            # Промежуточные тензоры FRCRN U-Net растут линейно с длиной входа.
+            if ram_gb >= 32:
+                self.max_single_pass_seconds = 30
+                self.segment_window_seconds = 20
+                self.segment_stride_seconds = 16
+            elif ram_gb >= 16:
+                self.max_single_pass_seconds = 10
+                self.segment_window_seconds = 8
+                self.segment_stride_seconds = 6
+            else:
+                # ≤8 ГБ: небольшие сегменты, минимальный пик памяти
+                self.max_single_pass_seconds = 5
+                self.segment_window_seconds = 4
+                self.segment_stride_seconds = 3
 
         logger.info(
             "%s initialized: device=%s, sample_rate=%d, one_time_decode_length=%d sec, "
@@ -55,10 +75,57 @@ class FRCRNSE16KMethod(BaseClearerVoiceMethod):
         return "FRCRN_SE_16K"
 
     def _build_model(self):
-
         args = self._get_args()
         wrapper = FRCRN_SE_16K(args)
         return wrapper.model
+
+    def _try_setup_ort(self) -> None:
+        onnx_path = self.model_path.with_suffix(".onnx")
+        try:
+            import onnxruntime  # noqa: F401
+        except ImportError:
+            logger.info("%s: onnxruntime не установлен, используем PyTorch", self.model_name)
+            return
+        try:
+            if not onnx_path.exists():
+                logger.info("%s: экспорт в ONNX → %s", self.model_name, onnx_path)
+
+                class _InferenceWrapper(nn.Module):
+                    def __init__(self, m):
+                        super().__init__()
+                        self.m = m
+                    def forward(self, x):
+                        return self.m.inference(x)
+
+                model_cpu = self.model.cpu()
+                wrapper = _InferenceWrapper(model_cpu)
+                dummy = torch.zeros(1, self.sample_rate)
+                torch.onnx.export(
+                    wrapper, dummy, str(onnx_path),
+                    input_names=["waveform"],
+                    output_names=["enhanced"],
+                    dynamic_axes={"waveform": {1: "length"}, "enhanced": {0: "length"}},
+                    opset_version=17,
+                    do_constant_folding=True,
+                )
+                self.model.to(self.device)
+                logger.info("%s: ONNX экспорт готов", self.model_name)
+
+            self._ort_session = self._make_ort_session(onnx_path)
+            logger.info("%s: ORT сессия запущена", self.model_name)
+        except Exception as e:
+            logger.warning("%s: ORT недоступен, используем PyTorch: %s", self.model_name, e)
+            self._ort_session = None
+            if onnx_path.exists():
+                onnx_path.unlink(missing_ok=True)
+
+    def _run_model_inference(self, waveform: torch.Tensor) -> torch.Tensor:
+        """Вызывает model.inference через ORT или PyTorch."""
+        if self._ort_session is not None:
+            np_in = waveform.cpu().numpy()
+            out = self._ort_session.run(None, {"waveform": np_in})[0]
+            return torch.from_numpy(out).to(self.device)
+        return self.model.inference(waveform)
 
     def _enhance_tensor(self, waveform: torch.Tensor) -> torch.Tensor:
         start_total = time.perf_counter()
@@ -99,7 +166,7 @@ class FRCRNSE16KMethod(BaseClearerVoiceMethod):
             )
 
             single_start = time.perf_counter()
-            outputs = self.model.inference(waveform)
+            outputs = self._run_model_inference(waveform)
             single_elapsed = time.perf_counter() - single_start
 
             if outputs.ndim == 1:
@@ -191,7 +258,7 @@ class FRCRNSE16KMethod(BaseClearerVoiceMethod):
             tmp_input = padded[:, current_idx:current_idx + window]
 
             seg_start = time.perf_counter()
-            tmp_output = self.model.inference(tmp_input)
+            tmp_output = self._run_model_inference(tmp_input)
             seg_elapsed = time.perf_counter() - seg_start
 
             if tmp_output.ndim == 2:

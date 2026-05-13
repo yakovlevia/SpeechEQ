@@ -51,19 +51,26 @@ class ComplexUniDeepFsmn(nn.Module):
         self.fsmn_im_L2 = UniDeepFsmn(nHidden, nOut, 20, nHidden)
 
     def forward(self, x):
-        # # shpae of input x : [b,c,h,T,2]
+        # shpae of input x : [b,c,h,T,2]
         b,c,h,T,d = x.size()
         x = torch.reshape(x, (b, c*h, T, d))
-        # x: [b,h,T,2]
         x = torch.transpose(x, 1, 2)
-        # x: [b,T,h,2]
-        real_L1 = self.fsmn_re_L1(x[..., 0]) - self.fsmn_im_L1(x[..., 1])
-        imaginary_L1 = self.fsmn_re_L1(x[..., 1]) + self.fsmn_im_L1(x[..., 0])        
-        real = self.fsmn_re_L2(real_L1) - self.fsmn_im_L2(imaginary_L1)
-        imaginary = self.fsmn_re_L2(imaginary_L1) + self.fsmn_im_L2(real_L1)
-        # output: [b,T,h,2]
+        # x: [b,T,c*h,2]
+
+        # Batch real/imag through the same network in one call (2x instead of 4x)
+        x_both = torch.cat([x[..., 0], x[..., 1]], dim=0)  # [2b,T,c*h]
+        out_re_L1 = self.fsmn_re_L1(x_both)
+        out_im_L1 = self.fsmn_im_L1(x_both)
+        real_L1 = out_re_L1[:b] - out_im_L1[b:]
+        imaginary_L1 = out_re_L1[b:] + out_im_L1[:b]
+
+        l1_both = torch.cat([real_L1, imaginary_L1], dim=0)  # [2b,T,c*h]
+        out_re_L2 = self.fsmn_re_L2(l1_both)
+        out_im_L2 = self.fsmn_im_L2(l1_both)
+        real = out_re_L2[:b] - out_im_L2[b:]
+        imaginary = out_re_L2[b:] + out_im_L2[:b]
+
         output = torch.stack((real, imaginary), dim=-1)
-        # output: [b,h,T,2]
         output = torch.transpose(output, 1, 2)
         output = torch.reshape(output, (b, c, h, T, d))
 
@@ -78,18 +85,21 @@ class ComplexUniDeepFsmn_L1(nn.Module):
         self.fsmn_im_L1 = UniDeepFsmn(nIn, nHidden, 20, nHidden)
 
     def forward(self, x):
-        # # shpae of input x : [b,c,h,T,2]
+        # shpae of input x : [b,c,h,T,2]
         b,c,h,T,d = x.size()
-        #x : [b,T,h,c,2]
         x = torch.transpose(x, 1, 3)
         x = torch.reshape(x, (b*T, h, c, d))
+        # x: [b*T,h,c,2]
 
-        real = self.fsmn_re_L1(x[..., 0]) - self.fsmn_im_L1(x[..., 1])
-        imaginary = self.fsmn_re_L1(x[..., 1]) + self.fsmn_im_L1(x[..., 0])
-        # output: [b*T,h,c,2]
+        n = x.shape[0]  # b*T
+        x_both = torch.cat([x[..., 0], x[..., 1]], dim=0)  # [2*b*T,h,c]
+        out_re = self.fsmn_re_L1(x_both)
+        out_im = self.fsmn_im_L1(x_both)
+        real = out_re[:n] - out_im[n:]
+        imaginary = out_re[n:] + out_im[:n]
+
         output = torch.stack((real, imaginary), dim=-1)
         output = torch.reshape(output, (b, T, h, c, d))
-        # output: [b,c,h,T,2]
         output = torch.transpose(output, 1, 3)
 
         return output
@@ -168,10 +178,14 @@ class ComplexConv2d(nn.Module):
                                  dilation=dilation, groups=groups, bias=bias, **kwargs)
 
     def forward(self, x):  # shpae of x : [batch,channel,axis1,axis2,2]
-        real = self.conv_re(x[..., 0]) - self.conv_im(x[..., 1])
-        imaginary = self.conv_re(x[..., 1]) + self.conv_im(x[..., 0])
-        output = torch.stack((real, imaginary), dim=-1)
-        return output
+        # Batch real and imag inputs together: 2 conv calls instead of 4
+        B = x.shape[0]
+        x_stack = torch.cat([x[..., 0], x[..., 1]], dim=0)  # [2B,C,H,W]
+        out_re = self.conv_re(x_stack)
+        out_im = self.conv_im(x_stack)
+        real = out_re[:B] - out_im[B:]
+        imaginary = out_re[B:] + out_im[:B]
+        return torch.stack((real, imaginary), dim=-1)
 
 
 class ComplexConvTranspose2d(nn.Module):
@@ -199,10 +213,13 @@ class ComplexConvTranspose2d(nn.Module):
                                            **kwargs)
 
     def forward(self, x):  # shpae of x : [batch,channel,axis1,axis2,2]
-        real = self.tconv_re(x[..., 0]) - self.tconv_im(x[..., 1])
-        imaginary = self.tconv_re(x[..., 1]) + self.tconv_im(x[..., 0])
-        output = torch.stack((real, imaginary), dim=-1)
-        return output
+        B = x.shape[0]
+        x_stack = torch.cat([x[..., 0], x[..., 1]], dim=0)
+        out_re = self.tconv_re(x_stack)
+        out_im = self.tconv_im(x_stack)
+        real = out_re[:B] - out_im[B:]
+        imaginary = out_re[B:] + out_im[:B]
+        return torch.stack((real, imaginary), dim=-1)
 
 
 class ComplexBatchNorm2d(nn.Module):

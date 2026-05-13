@@ -1,5 +1,7 @@
 import logging
 import time
+from pathlib import Path
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -20,6 +22,9 @@ class MossFormerGANSE16KMethod(BaseClearerVoiceMethod):
     - содержит подробное логирование для оценки времени
     """
 
+    # torch.stft/istft используют комплексные тензоры — torchinductor их не поддерживает
+    _supports_compile = False
+
     def __init__(self, preload: bool = True):
         super().__init__(
             model_filename="MossFormerGAN_SE_16K.pt",
@@ -28,9 +33,11 @@ class MossFormerGANSE16KMethod(BaseClearerVoiceMethod):
         )
 
         if self.device.type == "cuda":
-            self.max_single_pass_seconds = 10
+            # 30s сегментируется на 1s-окна (дизайн модели); GPU может делать их быстрее
+            self.max_single_pass_seconds = 30
         else:
-            self.max_single_pass_seconds = 3
+            # короткие клипы (≤8s) идут единым проходом; 30s → ~39 сегментов по 1s
+            self.max_single_pass_seconds = 8
 
         logger.info(
             "%s initialized: device=%s, sample_rate=%d, decode_window=%d sec, "

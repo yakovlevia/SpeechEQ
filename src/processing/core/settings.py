@@ -81,6 +81,7 @@ class ProcessingSettings:
             "metricgan_plus",
             "FRCRN_SE_16K",
             "MossFormerGAN_SE_16K",
+            "DeepFilterNet",
         ):
             self.ml_model_name = ""
 

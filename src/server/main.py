@@ -28,6 +28,7 @@ from src.processing.ml import (
     FRCRNSE16KMethod,
     MossFormerGANSE16KMethod,
     MetricGANPlusMethod,
+    DeepFilterNetMethod,
 )
 
 
@@ -88,6 +89,7 @@ def setup_processing_pipeline() -> tuple[LocalAudioHandler, AudioProcessingLogic
         FRCRNSE16KMethod(preload=True),           # ML улучшение речи
         MossFormerGANSE16KMethod(preload=True),   # ML улучшение речи
         MetricGANPlusMethod(preload=True),        # ML улучшение речи
+        DeepFilterNetMethod(preload=True),        # ML улучшение речи
         NoiseReductionDSP(),                      # Шумоподавление
         HumRemovalDSP(),                          # Удаление гула 50/60 Гц
         DeEsserDSP(),                             # Подавление шипящих звуков

@@ -760,6 +760,7 @@ class Ui_MainWindow(object):
         self.mlModelCombo.addItem("")
         self.mlModelCombo.addItem("")
         self.mlModelCombo.addItem("")
+        self.mlModelCombo.addItem("")
         self.mlModelCombo.setObjectName(u"mlModelCombo")
         self.mlModelCombo.setFont(font2)
         self.mlModelCombo.setMinimumSize(QSize(0, 50))
@@ -1243,6 +1244,7 @@ class Ui_MainWindow(object):
         self.mlModelCombo.setItemText(1, QCoreApplication.translate("MainWindow", u"FRCRN", None))
         self.mlModelCombo.setItemText(2, QCoreApplication.translate("MainWindow", u"MossFormerGAN_SE", None))
         self.mlModelCombo.setItemText(3, QCoreApplication.translate("MainWindow", u"MetricGAN+", None))
+        self.mlModelCombo.setItemText(4, QCoreApplication.translate("MainWindow", u"DeepFilterNet", None))
 
         self.generalSettingsLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p><span style=\" font-size:14pt; font-weight:700;\">\u041e\u0431\u0449\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438:</span></p></body></html>", None))
         self.normalizationCheck.setText(QCoreApplication.translate("MainWindow", u"\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043d\u043e\u0440\u043c\u0430\u043b\u0438\u0437\u0430\u0446\u0438\u044f \u0433\u0440\u043e\u043c\u043a\u043e\u0441\u0442\u0438 (LUFS)", None))

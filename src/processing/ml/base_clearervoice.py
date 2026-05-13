@@ -2,10 +2,28 @@ import ast
 import logging
 import os
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from pathlib import Path
 from threading import Lock
 from types import SimpleNamespace
 from typing import Any, Dict, Iterable, Optional
+
+
+def _total_ram_gb() -> float:
+    """Возвращает общий объём RAM в ГБ. Работает на Linux/macOS/Windows."""
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    return int(line.split()[1]) / 1024 / 1024
+    except Exception:
+        pass
+    try:
+        import psutil
+        return psutil.virtual_memory().total / 1024 ** 3
+    except ImportError:
+        pass
+    return 8.0  # консервативный fallback
 
 import numpy as np
 import torch
@@ -21,6 +39,9 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
     """
     Базовый класс для локального inference моделей ClearerVoice-Studio.
 
+    _supports_compile = False отключает torch.compile для моделей с кастомными
+    комплексными операторами, которые torchinductor не умеет оптимизировать.
+
     Особенности:
     - eager preload модели при создании объекта
     - один общий экземпляр модели на всё приложение
@@ -28,6 +49,8 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
     - shape-aware загрузка checkpoint
     - ограничение single-pass для снижения нагрузки на RAM/VRAM
     """
+
+    _supports_compile: bool = True
 
     KEY_PREFIX_CANDIDATES = (
         "",
@@ -49,6 +72,7 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
         self._load_lock = Lock()
         self._infer_lock = Lock()
         self.model: Optional[torch.nn.Module] = None
+        self._ort_session = None
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -83,17 +107,58 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
             self.config.get("max_single_pass_seconds", default_single_pass)
         )
 
-        # Можно ограничить число CPU thread'ов через env
-        # например SPEECHEQ_TORCH_THREADS=4
-        env_threads = os.getenv("SPEECHEQ_TORCH_THREADS")
-        if env_threads:
-            try:
-                torch.set_num_threads(max(1, int(env_threads)))
-            except Exception:
-                pass
+        self._setup_torch_backend()
 
         if preload:
             self._load_model()
+
+    def _try_setup_ort(self) -> None:
+        """Переопределяется в подклассах для настройки ONNX Runtime сессии."""
+        pass
+
+    def _make_ort_session(self, onnx_path: Path):
+        """Создаёт ORT InferenceSession с оптимальными настройками CPU."""
+        import onnxruntime as ort
+        num_cpus = os.cpu_count() or 4
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = max(2, num_cpus - 2)
+        opts.inter_op_num_threads = max(1, num_cpus // 4)
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        providers = (
+            ["CUDAExecutionProvider", "CPUExecutionProvider"]
+            if self.device.type == "cuda"
+            else ["CPUExecutionProvider"]
+        )
+        return ort.InferenceSession(str(onnx_path), opts, providers=providers)
+
+    def _setup_torch_backend(self) -> None:
+        # Оставляем 2 ядра свободными для ОС/UI, остальные — под вычисления.
+        # SPEECHEQ_TORCH_THREADS переопределяет автоматику.
+        num_cpus = os.cpu_count() or 4
+        env_threads = os.getenv("SPEECHEQ_TORCH_THREADS")
+        if env_threads:
+            intra = max(1, int(env_threads))
+        else:
+            intra = max(2, num_cpus - 2)
+        try:
+            torch.set_num_threads(intra)
+        except RuntimeError:
+            pass
+        try:
+            torch.set_num_interop_threads(max(1, num_cpus - intra))
+        except RuntimeError:
+            pass
+
+        # GPU: авто-тюнинг ядер + TF32 (незначительная потеря точности, ~3x быстрее matmul)
+        if self.device.type == "cuda":
+            torch.backends.cudnn.benchmark = True
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
+
+        logger.info(
+            "%s backend: device=%s, intra_threads=%d",
+            self.__class__.__name__, self.device, intra,
+        )
 
     def is_enabled(self, settings: ProcessingSettings) -> bool:
         return bool(settings.ml_model and settings.ml_model_name == self.model_name)
@@ -252,6 +317,22 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
 
             self.model = model
 
+            self._try_setup_ort()
+
+            # torch.compile (PyTorch >= 2.0): фьюзит операции и устраняет Python-overhead.
+            # Пропускаем модели с кастомными комплексными операторами — torchinductor их не поддерживает.
+            if self._supports_compile and hasattr(torch, "compile"):
+                try:
+                    self.model = torch.compile(self.model, mode="reduce-overhead")
+                    logger.info("%s: torch.compile applied", self.model_name)
+                    # Warmup: принудительно запускаем компиляцию до первого реального вызова
+                    with torch.inference_mode():
+                        dummy = torch.zeros(1, self.sample_rate, device=self.device)
+                        self._enhance_tensor(dummy)
+                    logger.info("%s: warmup done", self.model_name)
+                except Exception as e:
+                    logger.warning("%s: torch.compile skipped: %s", self.model_name, e)
+
     def _extract_state_dict_recursive(self, obj: Any) -> Dict[str, torch.Tensor]:
         if isinstance(obj, dict):
             if obj and all(isinstance(k, str) for k in obj.keys()) and all(torch.is_tensor(v) for v in obj.values()):
@@ -353,6 +434,14 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
 
         # Важно: один inference за раз на модель.
         # Это не даёт нескольким gRPC-потокам одновременно раздувать память.
+        # На GPU используем mixed precision (float16 для большинства ops,
+        # float32 для batch norm и других чувствительных слоёв — autocast решает сам)
+        amp_ctx = (
+            torch.autocast(device_type="cuda", dtype=torch.float16)
+            if self.device.type == "cuda" and hasattr(torch, "autocast")
+            else nullcontext()
+        )
+
         with self._infer_lock:
             with torch.inference_mode():
                 waveform = torch.from_numpy(audio).to(self.device).float().unsqueeze(0)
@@ -364,7 +453,8 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
                         target_sr=self.sample_rate
                     )
 
-                enhanced = self._enhance_tensor(waveform)
+                with amp_ctx:
+                    enhanced = self._enhance_tensor(waveform)
 
                 if sample_rate != self.sample_rate:
                     enhanced = self._resample_torch(
@@ -373,7 +463,7 @@ class BaseClearerVoiceMethod(AudioProcessingMethod, ABC):
                         target_sr=sample_rate
                     )
 
-                enhanced = enhanced.squeeze(0).detach().cpu().numpy().astype(np.float32)
+                enhanced = enhanced.squeeze(0).detach().cpu().to(torch.float32).numpy()
 
                 if self.device.type == "cuda":
                     torch.cuda.empty_cache()
