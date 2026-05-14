@@ -15,7 +15,6 @@ noisereduce==3.0.3
 speechbrain==1.1.0
 einops==0.8.2
 rotary-embedding-torch==0.8.9
-packaging>=24.0
 
 deepfilternet==0.5.6
 

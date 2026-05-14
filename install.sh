@@ -142,7 +142,7 @@ echo ""
 echo "Установка зависимостей..."
 source venv/bin/activate
 
-python -m pip install --upgrade pip setuptools wheel -q
+python -m pip install --upgrade pip setuptools -q
 
 python -m pip install -r requirements.txt
 

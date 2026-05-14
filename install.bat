@@ -206,7 +206,7 @@ echo Installing dependencies...
 
 call venv\Scripts\activate.bat
 
-python -m pip install --upgrade pip setuptools wheel -q
+python -m pip install --upgrade pip setuptools -q
 
 if not exist requirements.txt (
     echo [X] requirements.txt not found.
