@@ -175,6 +175,8 @@ def _to_path(raw: str) -> Path:
     """Конвертирует Windows- или Unix-путь в Path текущей платформы."""
     raw = raw.strip()
     if "\\" in raw:
+        if sys.platform == "win32":
+            return Path(raw)
         p = PureWindowsPath(raw)
         # Убираем букву диска (D:), оставляем остаток
         parts = p.parts[1:] if p.drive else p.parts
