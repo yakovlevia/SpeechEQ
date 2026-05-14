@@ -20,6 +20,8 @@ if not exist "venv\" (
 
 :: Активируем окружение и запускаем сервер с переданными аргументами
 call venv\Scripts\activate.bat
+set PYTHONIOENCODING=utf-8
+chcp 65001 >nul
 python -m src.server.main %*
 
 :: Если сервер завершился, ждём нажатия клавиши перед закрытием окна

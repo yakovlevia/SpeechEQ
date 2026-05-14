@@ -20,6 +20,8 @@ if not exist "venv\" (
 
 :: Активируем окружение и запускаем клиент
 call venv\Scripts\activate.bat
+set PYTHONIOENCODING=utf-8
+chcp 65001 >nul
 python -m src.client.main
 
 :: Если клиент завершился, ждём нажатия клавиши перед закрытием окна

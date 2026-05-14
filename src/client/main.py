@@ -38,7 +38,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('speecheq_debug.log')
+        logging.FileHandler('speecheq_debug.log', encoding='utf-8')
     ]
 )
 logger = logging.getLogger(__name__)
