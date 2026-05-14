@@ -15,7 +15,10 @@ from packaging.version import parse as V
 from torch.nn import init
 from torch.nn.parameter import Parameter
 
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
+try:
+    is_torch_1_9_plus = V(str(torch.__version__)) >= V("1.9.0")
+except Exception:
+    is_torch_1_9_plus = True
 
 class MossFormerGAN_SE_16K(nn.Module):
     def __init__(self, args):
