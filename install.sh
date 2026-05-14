@@ -80,7 +80,10 @@ python -m pip install \
     "speechbrain>=0.5.15" \
     "einops>=0.7.0" \
     "rotary-embedding-torch>=0.3.0" \
-    "packaging>=23.0"
+    "packaging>=23.0" \
+    "deepfilternet>=0.5.6" \
+    "pesq>=0.0.4" \
+    "pystoi>=0.4.1"
 
 echo ""
 echo "=========================================="

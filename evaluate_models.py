@@ -10,17 +10,20 @@
   python evaluate_models.py
   python evaluate_models.py --models frcrn deepfilternet metricgan mossformer
   python evaluate_models.py --examples examples/
+  python evaluate_models.py --scp examples/pairs.scp
 
-Входные файлы:
-  examples/clean/clean_1.wav … clean_N.wav
-  examples/noisy/noisy_1.wav … noisy_N.wav
+Режимы указания пар:
+  --examples DIR   ищет clean_*.wav / noisy_*.wav в DIR/clean и DIR/noisy
+  --scp FILE       читает пары из .scp-файла (одна пара на строку: "noisy clean")
+                   поддерживаются Windows- и Unix-пути
 
-Результаты сохраняются в examples/output/<model_name>/enhanced_N.wav
+Результаты сохраняются в <output>/enhanced_N.wav
+  (output = <examples>/output по умолчанию, или рядом с .scp при --scp)
 """
 
 import argparse
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import numpy as np
 import soundfile as sf
@@ -157,6 +160,41 @@ def compute_metrics(clean: np.ndarray, audio: np.ndarray, sr: int,
 
 # ─── Файлы ────────────────────────────────────────────────────────────────────
 
+def _to_path(raw: str) -> Path:
+    """Конвертирует Windows- или Unix-путь в Path текущей платформы."""
+    raw = raw.strip()
+    if "\\" in raw:
+        p = PureWindowsPath(raw)
+        # Убираем букву диска (D:), оставляем остаток
+        parts = p.parts[1:] if p.drive else p.parts
+        return Path(*parts)
+    return Path(raw)
+
+
+def load_scp(scp_path: Path) -> list[tuple[Path, Path]]:
+    """Читает .scp-файл и возвращает список пар (noisy, clean)."""
+    pairs = []
+    with scp_path.open(encoding="utf-8") as f:
+        for lineno, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            if len(parts) < 2:
+                print(f"  [предупреждение] строка {lineno}: ожидается 'noisy clean', пропуск")
+                continue
+            noisy = _to_path(parts[0])
+            clean = _to_path(parts[1])
+            if not noisy.exists():
+                print(f"  [предупреждение] не найден: {noisy}, пропуск")
+                continue
+            if not clean.exists():
+                print(f"  [предупреждение] не найден: {clean}, пропуск")
+                continue
+            pairs.append((clean, noisy))
+    return pairs
+
+
 def find_pairs(examples_dir: Path) -> list[tuple[Path, Path]]:
     clean_files = sorted((examples_dir / "clean").glob("clean_*.wav"))
     pairs = []
@@ -274,23 +312,39 @@ def main():
         default=list(MODEL_REGISTRY.keys()),
         help="Модели для оценки (default: все)"
     )
-    parser.add_argument(
-        "--examples", type=Path, default=Path("examples"),
+    src = parser.add_mutually_exclusive_group()
+    src.add_argument(
+        "--examples", type=Path, default=None,
         help="Папка с clean/noisy парами (default: examples/)"
+    )
+    src.add_argument(
+        "--scp", type=Path, default=None,
+        help=".scp-файл с парами (одна строка: 'noisy clean')"
+    )
+    parser.add_argument(
+        "--output", type=Path, default=None,
+        help="Папка для сохранения enhanced файлов (default: рядом с --examples или --scp)"
     )
     args = parser.parse_args()
 
-    examples_dir = args.examples
-    output_root = examples_dir / "output"
+    if args.scp is not None:
+        if not args.scp.exists():
+            print(f"Файл не найден: {args.scp}")
+            sys.exit(1)
+        pairs = load_scp(args.scp)
+        output_root = args.output or args.scp.parent / "output"
+    else:
+        examples_dir = args.examples or Path("examples")
+        pairs = find_pairs(examples_dir)
+        output_root = args.output or examples_dir / "output"
 
-    pairs = find_pairs(examples_dir)
     if not pairs:
-        print(f"Не найдено пар clean/noisy в {examples_dir}")
+        print("Не найдено ни одной валидной пары clean/noisy.")
         sys.exit(1)
 
     print(f"Найдено пар: {len(pairs)}")
     for c, n in pairs:
-        print(f"  {c.name}  ←→  {n.name}")
+        print(f"  {n.name}  ←→  {c.name}")
 
     clean_list, noisy_list = [], []
     for c_path, n_path in pairs:
@@ -324,7 +378,8 @@ def main():
         model_scores = []
 
         for i, (clean, noisy) in enumerate(zip(clean_list, noisy_list)):
-            idx = pairs[i][1].stem[len("noisy_"):]
+            stem = pairs[i][1].stem
+            idx = stem[len("noisy_"):] if stem.startswith("noisy_") else str(i + 1)
             out_name = f"enhanced_{idx}.wav"
 
             enhanced = method.process(noisy.copy(), SAMPLE_RATE, settings)
