@@ -9,6 +9,7 @@ grpcio-tools==1.80.0
 protobuf==6.33.6
 
 torch==2.11.0
+torchaudio==2.11.0
 scipy==1.15.3
 pyloudnorm==0.2.0
 noisereduce==3.0.3

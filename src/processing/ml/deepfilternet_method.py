@@ -63,10 +63,9 @@ class DeepFilterNetMethod(AudioProcessingMethod):
             self._patch_torchaudio_compat()
             try:
                 from df.enhance import init_df
-            except ImportError:
-                raise ImportError(
-                    "deepfilternet не установлен. Запусти: pip install deepfilternet"
-                )
+            except ImportError as e:
+                logger.warning("DeepFilterNet: не удалось загрузить — %s", e)
+                return
             logger.info("DeepFilterNet: загрузка модели из %s ...", self.models_dir)
             model, df_state, _ = init_df(model_base_dir=str(self.models_dir), log_level="ERROR")
             model = model.to(self.device)
@@ -92,6 +91,8 @@ class DeepFilterNetMethod(AudioProcessingMethod):
             return audio
 
         self._load_model()
+        if self.model is None:
+            return audio
 
         audio = np.asarray(audio, dtype=np.float32)
         audio = np.clip(audio, -1.0, 1.0)
