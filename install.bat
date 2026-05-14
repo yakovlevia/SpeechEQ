@@ -10,7 +10,8 @@ echo.
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
-set "REQUIRED_VER=3.10.12"
+set "REQUIRED_MAJOR=3"
+set "REQUIRED_MINOR=10"
 
 :: =========================
 :: LICENSE CHECK
@@ -108,15 +109,17 @@ echo.
 :: PYTHON 3.10.12 CHECK
 :: =========================
 
-echo Checking Python %REQUIRED_VER%...
+echo Checking Python %REQUIRED_MAJOR%.%REQUIRED_MINOR%.x...
 
 set "PYTHON_CMD="
 
-:: Ищем Python с точной версией 3.10.12
+:: Ищем Python 3.10.x
 for /f "tokens=*" %%p in ('where python 2^>nul') do (
     for /f "tokens=2" %%v in ('"%%p" --version 2^>^&1') do (
-        if "%%v"=="%REQUIRED_VER%" (
-            if not defined PYTHON_CMD set "PYTHON_CMD=%%p"
+        for /f "tokens=1,2 delims=." %%a in ("%%v") do (
+            if "%%a"=="%REQUIRED_MAJOR%" if "%%b"=="%REQUIRED_MINOR%" (
+                if not defined PYTHON_CMD set "PYTHON_CMD=%%p"
+            )
         )
     )
 )
@@ -124,29 +127,25 @@ for /f "tokens=*" %%p in ('where python 2^>nul') do (
 :: Также проверим py launcher
 if not defined PYTHON_CMD (
     py -3.10 --version >nul 2>&1
-    if !errorlevel! equ 0 (
-        for /f "tokens=2" %%v in ('py -3.10 --version 2^>^&1') do (
-            if "%%v"=="%REQUIRED_VER%" set "PYTHON_CMD=py -3.10"
-        )
-    )
+    if !errorlevel! equ 0 set "PYTHON_CMD=py -3.10"
 )
 
 if not defined PYTHON_CMD (
-    echo Python %REQUIRED_VER% not found. Installing via winget...
+    echo Python %REQUIRED_MAJOR%.%REQUIRED_MINOR%.x not found. Installing via winget...
     echo.
 
     where winget >nul 2>&1
     if %errorlevel% neq 0 (
         echo [X] Winget not available.
-        echo     Download Python %REQUIRED_VER% manually: https://www.python.org/downloads/release/python-31012/
+        echo     Download Python %REQUIRED_MAJOR%.%REQUIRED_MINOR% manually: https://www.python.org/downloads/release/python-31012/
         pause
         exit /b 1
     )
 
     winget install --id Python.Python.3.10 -e --accept-package-agreements --accept-source-agreements
 
-    if %errorlevel% neq 0 (
-        echo [X] Python %REQUIRED_VER% installation failed.
+    if !errorlevel! neq 0 (
+        echo [X] Python %REQUIRED_MAJOR%.%REQUIRED_MINOR% installation failed.
         pause
         exit /b 1
     )
@@ -164,11 +163,19 @@ for /f "tokens=2" %%v in ('"%PYTHON_CMD%" --version 2^>^&1') do (
 )
 echo.
 
-:: Проверяем точную версию
+:: Проверяем версию 3.10.x
 for /f "tokens=2" %%i in ('"%PYTHON_CMD%" --version 2^>^&1') do set PY_VER=%%i
-if not "%PY_VER%"=="%REQUIRED_VER%" (
-    echo [X] Python %REQUIRED_VER% required, found %PY_VER%.
-    echo     Download: https://www.python.org/downloads/release/python-31012/
+for /f "tokens=1,2 delims=." %%a in ("%PY_VER%") do (
+    set PY_MAJOR=%%a
+    set PY_MINOR=%%b
+)
+if not "%PY_MAJOR%"=="%REQUIRED_MAJOR%" (
+    echo [X] Python %REQUIRED_MAJOR%.%REQUIRED_MINOR%.x required, found %PY_VER%.
+    pause
+    exit /b 1
+)
+if not "%PY_MINOR%"=="%REQUIRED_MINOR%" (
+    echo [X] Python %REQUIRED_MAJOR%.%REQUIRED_MINOR%.x required, found %PY_VER%.
     pause
     exit /b 1
 )

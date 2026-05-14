@@ -13,10 +13,8 @@ echo ""
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
-REQUIRED_PYTHON="3.10.12"
 REQUIRED_MAJOR=3
 REQUIRED_MINOR=10
-REQUIRED_PATCH=12
 
 # ─── Определение ОС ──────────────────────────────────────────────────────────
 
@@ -39,9 +37,10 @@ echo ""
 find_python() {
     for cmd in python3.10 python3; do
         if command -v "$cmd" &>/dev/null; then
-            local ver
-            ver=$("$cmd" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')" 2>/dev/null)
-            if [ "$ver" = "$REQUIRED_PYTHON" ]; then
+            local major minor
+            major=$("$cmd" -c "import sys; print(sys.version_info.major)" 2>/dev/null)
+            minor=$("$cmd" -c "import sys; print(sys.version_info.minor)" 2>/dev/null)
+            if [ "$major" = "$REQUIRED_MAJOR" ] && [ "$minor" = "$REQUIRED_MINOR" ]; then
                 echo "$cmd"
                 return 0
             fi
@@ -55,7 +54,7 @@ PYTHON=$(find_python || true)
 # ─── Установка Python 3.10.12, если не найден ────────────────────────────────
 
 if [ -z "$PYTHON" ]; then
-    echo "Python $REQUIRED_PYTHON не найден. Устанавливаю..."
+    echo "Python ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x не найден. Устанавливаю..."
     echo ""
 
     if [ "$OS" = "macos" ]; then
@@ -79,15 +78,15 @@ if [ -z "$PYTHON" ]; then
         PYTHON=python3.10
 
     else
-        echo "Неизвестная платформа. Установите Python $REQUIRED_PYTHON вручную: https://www.python.org/downloads/release/python-31012/"
+        echo "Неизвестная платформа. Установите Python ${REQUIRED_MAJOR}.${REQUIRED_MINOR} вручную: https://www.python.org/downloads/release/python-31012/"
         exit 1
     fi
 
     # Перепроверка после установки
     PYTHON=$(find_python || true)
     if [ -z "$PYTHON" ]; then
-        echo "Не удалось найти Python $REQUIRED_PYTHON после установки."
-        echo "Пожалуйста, установите Python $REQUIRED_PYTHON вручную: https://www.python.org/downloads/release/python-31012/"
+        echo "Не удалось найти Python ${REQUIRED_MAJOR}.${REQUIRED_MINOR}.x после установки."
+        echo "Пожалуйста, установите Python ${REQUIRED_MAJOR}.${REQUIRED_MINOR} вручную: https://www.python.org/downloads/release/python-31012/"
         exit 1
     fi
 fi
