@@ -1,5 +1,6 @@
 @echo off
-setlocal
+chcp 65001 >nul
+setlocal EnableDelayedExpansion
 
 echo ==========================================
 echo    Запуск клиента SpeechEQ
