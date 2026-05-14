@@ -104,16 +104,18 @@ class DeepFilterNetMethod(AudioProcessingMethod):
                 self._patch_torchaudio_compat()
                 from df.enhance import enhance
 
-                waveform = torch.from_numpy(audio).unsqueeze(0)  # [1, T]
+                waveform = torch.from_numpy(audio).unsqueeze(0)  # [1, T] CPU
 
                 if sample_rate != _DF_SR:
                     waveform = self._resample(waveform, sample_rate, _DF_SR)
 
-                waveform = waveform.to(self.device)
+                # Pass CPU tensor — enhance() moves to model.device internally;
+                # df_state (Rust backend) requires CPU for analysis/synthesis ops.
                 enhanced = enhance(self.model, self.df_state, waveform, pad=True)
+                enhanced = enhanced.detach().cpu()
 
                 if sample_rate != _DF_SR:
-                    enhanced = self._resample(enhanced.cpu(), _DF_SR, sample_rate)
+                    enhanced = self._resample(enhanced, _DF_SR, sample_rate)
 
                 enhanced = enhanced.squeeze(0).cpu().numpy().astype(np.float32)
 
