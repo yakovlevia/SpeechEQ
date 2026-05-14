@@ -216,6 +216,10 @@ if not exist requirements.txt (
 
 python -m pip install -r requirements.txt
 
+:: k2 (ASR-интеграция speechbrain) недоступен через pip — ставим заглушку
+python -c "import k2" 2>nul || python -c ^
+"import sys, os; site=[p for p in sys.path if 'site-packages' in p][0]; d=os.path.join(site,'k2'); os.makedirs(d,exist_ok=True); open(os.path.join(d,'__init__.py'),'w').close(); print('[+] k2 stub installed')"
+
 echo.
 echo ==========================================
 echo        Installation completed!

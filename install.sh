@@ -146,6 +146,17 @@ python -m pip install --upgrade pip setuptools -q
 
 python -m pip install -r requirements.txt
 
+# k2 (ASR-интеграция speechbrain) недоступен через pip — ставим заглушку
+python -c "import k2" 2>/dev/null || python -m pip install k2-stub 2>/dev/null || \
+    python -c "
+import sys, os
+site = next(p for p in sys.path if 'site-packages' in p)
+k2_dir = os.path.join(site, 'k2')
+os.makedirs(k2_dir, exist_ok=True)
+open(os.path.join(k2_dir, '__init__.py'), 'w').close()
+print('[+] k2 stub installed')
+"
+
 echo ""
 echo "=========================================="
 echo "        Установка завершена!"
