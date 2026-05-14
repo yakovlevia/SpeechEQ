@@ -144,6 +144,22 @@ source venv/bin/activate
 
 python -m pip install --upgrade pip setuptools -q
 
+# Определяем наличие NVIDIA GPU и выбираем нужный torch
+if command -v nvidia-smi &>/dev/null; then
+    CUDA_MAJOR=$(nvidia-smi 2>/dev/null | grep -oP "CUDA Version: \K\d+" | head -1)
+    if [ -n "$CUDA_MAJOR" ] && [ "$CUDA_MAJOR" -ge 12 ] 2>/dev/null; then
+        CUDA_TAG="cu124"
+    else
+        CUDA_TAG="cu118"
+    fi
+    echo "NVIDIA GPU обнаружен (CUDA ${CUDA_MAJOR}.x) — устанавливаем torch с поддержкой GPU..."
+    python -m pip install torch torchaudio \
+        --index-url "https://download.pytorch.org/whl/${CUDA_TAG}" -q
+    echo "[+] torch с CUDA (${CUDA_TAG}) установлен"
+else
+    echo "[i] NVIDIA GPU не обнаружен — устанавливаем CPU-версию torch"
+fi
+
 python -m pip install -r requirements.txt
 
 # k2 (ASR-интеграция speechbrain) недоступен через pip — ставим заглушку

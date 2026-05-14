@@ -208,6 +208,16 @@ call venv\Scripts\activate.bat
 
 python -m pip install --upgrade pip setuptools -q
 
+:: Определяем наличие NVIDIA GPU и выбираем нужный torch
+nvidia-smi >nul 2>&1
+if %errorlevel% equ 0 (
+    echo NVIDIA GPU обнаружен — устанавливаем torch с поддержкой CUDA...
+    python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu124 -q
+    echo [+] torch с CUDA установлен
+) else (
+    echo [i] NVIDIA GPU не обнаружен — устанавливаем CPU-версию torch
+)
+
 if not exist requirements.txt (
     echo [X] requirements.txt not found.
     pause
