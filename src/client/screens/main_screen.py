@@ -70,7 +70,7 @@ class MainScreenLogic:
 
             "<p><b>Технологии обработки</b><br>"
             "• <b>Нейросетевые модели</b> для подавления нестационарных шумов и реверберации:<br>"
-            " — MetricGAN+ (дообучена на русской речи)<br>"
+            " — MetricGAN+ <i>(экспериментальный)</i><br>"
             " — DeepFilterNet<br>"
             " — FRCRN_SE_16K<br>"
             " — MossFormerGAN_SE_16K<br>"
@@ -117,7 +117,7 @@ class MainScreenLogic:
             " • Не использовать ML-модели<br>"
             " • FRCRN_SE_16K<br>"
             " • MossFormerGAN_SE_16K<br>"
-            " • MetricGAN+ (дообучена на русской речи)<br>"
+            " • MetricGAN+ <i>(экспериментальный, на сильных шумах может работать хуже)</i><br>"
             " • DeepFilterNet (быстрее, 48 кГц нативно)<br>"
             "Обратите внимание: ML-модели требуют больше ресурсов, особенно на CPU без CUDA.</p>"
 

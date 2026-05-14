@@ -270,7 +270,7 @@ class MossFormerGANSE16KMethod(BaseClearerVoiceMethod):
 
         istft_start = time.perf_counter()
         pred_spec_uncompress = self._power_uncompress(pred_real, pred_imag).squeeze(1)
-        outputs = self._istft(pred_spec_uncompress, slen=None, center=False)
+        outputs = self._istft(pred_spec_uncompress, slen=padded_len, center=True)
         istft_elapsed = time.perf_counter() - istft_start
 
         outputs = outputs.squeeze(0) / c

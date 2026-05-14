@@ -1243,7 +1243,7 @@ class Ui_MainWindow(object):
         self.mlModelCombo.setItemText(0, QCoreApplication.translate("MainWindow", u"\u041d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c ML-\u043c\u043e\u0434\u0435\u043b\u0438", None))
         self.mlModelCombo.setItemText(1, QCoreApplication.translate("MainWindow", u"FRCRN", None))
         self.mlModelCombo.setItemText(2, QCoreApplication.translate("MainWindow", u"MossFormerGAN_SE", None))
-        self.mlModelCombo.setItemText(3, QCoreApplication.translate("MainWindow", u"MetricGAN+", None))
+        self.mlModelCombo.setItemText(3, QCoreApplication.translate("MainWindow", u"MetricGAN+ (\u044d\u043a\u0441\u043f\u0435\u0440\u0438\u043c\u0435\u043d\u0442\u0430\u043b\u044c\u043d\u044b\u0439)", None))
         self.mlModelCombo.setItemText(4, QCoreApplication.translate("MainWindow", u"DeepFilterNet", None))
 
         self.generalSettingsLabel.setText(QCoreApplication.translate("MainWindow", u"<html><head/><body><p><span style=\" font-size:14pt; font-weight:700;\">\u041e\u0431\u0449\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438:</span></p></body></html>", None))

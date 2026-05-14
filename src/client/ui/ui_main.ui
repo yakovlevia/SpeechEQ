@@ -1242,7 +1242,12 @@
              </item>
              <item>
               <property name="text">
-               <string>MetricGAN+</string>
+               <string>MetricGAN+ (экспериментальный)</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>DeepFilterNet</string>
               </property>
              </item>
             </widget>

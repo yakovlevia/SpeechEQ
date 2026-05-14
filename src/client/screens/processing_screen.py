@@ -561,7 +561,7 @@ class ProcessingScreenLogic(QObject):
         model_display_names = {
             "FRCRN_SE_16K": "FRCRN",
             "MossFormerGAN_SE_16K": "MossFormerGAN_SE",
-            "metricgan_plus": "MetricGAN+",
+            "metricgan_plus": "MetricGAN+ (экспериментальный)",
             "DeepFilterNet": "DeepFilterNet",
         }
         model_name = model_display_names.get(settings.ml_model_name, settings.ml_model_name)
