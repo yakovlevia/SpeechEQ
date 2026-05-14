@@ -6,16 +6,33 @@
 
 Запуск:
     python benchmark_processing.py
-    python benchmark_processing.py --duration 10  # длительность в секундах
-    python benchmark_processing.py --runs 5       # число прогонов
-    python benchmark_processing.py --skip-ml      # пропустить ML модели
+    python benchmark_processing.py --duration 30   # длительность в секундах
+    python benchmark_processing.py --runs 5        # число прогонов
+    python benchmark_processing.py --skip-ml       # пропустить ML модели
+    python benchmark_processing.py --device cuda   # использовать GPU
+    python benchmark_processing.py --device cpu    # принудительно CPU
 """
 
 import gc
+import os
 import sys
 import time
 import argparse
 import numpy as np
+
+# ─── Ранний парсинг --device чтобы успеть до импорта torch ──────────────────
+
+def _early_device() -> str:
+    for i, arg in enumerate(sys.argv):
+        if arg == "--device" and i + 1 < len(sys.argv):
+            return sys.argv[i + 1].lower()
+    return "auto"
+
+_DEVICE_ARG = _early_device()
+if _DEVICE_ARG == "cpu":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
+# ─── Основные импорты ────────────────────────────────────────────────────────
 
 sys.path.insert(0, ".")
 
@@ -26,8 +43,17 @@ from src.processing.dsp.deesser import DeEsserDSP
 from src.processing.dsp.speech_eq import SpeechEQDSP
 from src.processing.dsp.loudness_normalization import LoudnessNormalizationDSP
 
-
 SAMPLE_RATE = 16000
+
+
+def detect_device() -> str:
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return f"cuda ({torch.cuda.get_device_name(0)})"
+    except ImportError:
+        pass
+    return "cpu"
 
 
 def generate_audio(duration_sec: float) -> np.ndarray:
@@ -41,7 +67,6 @@ def generate_audio(duration_sec: float) -> np.ndarray:
         + 0.1 * np.sin(2 * np.pi * 3500 * t)
     )
     hum = 0.05 * np.sin(2 * np.pi * 50 * t)
-
     rng = np.random.default_rng(42)
     noise = 0.05 * rng.standard_normal(n).astype(np.float32)
 
@@ -63,14 +88,14 @@ def bench(method, settings: ProcessingSettings, audio: np.ndarray, runs: int) ->
         times.append((t1 - t0) * 1000)
     times = np.array(times)
     return {
-        "min": float(times.min()),
-        "max": float(times.max()),
+        "min":  float(times.min()),
+        "max":  float(times.max()),
         "mean": float(times.mean()),
-        "std": float(times.std()),
+        "std":  float(times.std()),
     }
 
 
-def print_results(results: list, duration_sec: float):
+def print_results(results: list, duration_sec: float, device: str):
     audio_ms = duration_sec * 1000
     col_w = 26
     header = (
@@ -80,6 +105,7 @@ def print_results(results: list, duration_sec: float):
     sep = "-" * len(header)
     print(f"\n{'=' * len(header)}")
     print(f"  Audio: {duration_sec:.1f}s @ {SAMPLE_RATE} Hz mono"
+          f" | Device: {device}"
           f" | RTF = processing_time / audio_duration")
     print(f"{'=' * len(header)}")
     print(header)
@@ -112,8 +138,23 @@ def main():
                         help="Число прогонов на каждый метод (default: 3)")
     parser.add_argument("--skip-ml", action="store_true",
                         help="Пропустить ML модели")
+    parser.add_argument("--device", type=str, default="auto",
+                        choices=["auto", "cpu", "cuda"],
+                        help="Устройство: auto (default), cpu, cuda")
     args = parser.parse_args()
 
+    device_label = detect_device()
+
+    if args.device == "cuda":
+        try:
+            import torch
+            if not torch.cuda.is_available():
+                print("[!] CUDA недоступна. Используется CPU.")
+                device_label = "cpu"
+        except ImportError:
+            pass
+
+    print(f"Устройство: {device_label}")
     print(f"Генерация аудио {args.duration}с @ {SAMPLE_RATE} Гц моно...")
     audio = generate_audio(args.duration)
     print(f"  Сэмплов: {len(audio)}, dtype: {audio.dtype}, peak: {np.abs(audio).max():.4f}")
@@ -148,6 +189,7 @@ def main():
         ]
 
         for name, cls, model_name in ml_candidates:
+            method = None
             print(f"  {name} (загрузка модели)...")
             try:
                 method = cls(preload=True)
@@ -157,9 +199,9 @@ def main():
             except Exception as e:
                 print(f"  {name} ПРОПУСК: {e}")
             finally:
-                unload(method if "method" in dir() else None)
+                unload(method)
 
-    print_results(results, args.duration)
+    print_results(results, args.duration, device_label)
 
 
 if __name__ == "__main__":

@@ -22,11 +22,22 @@
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path, PureWindowsPath
 
 import numpy as np
 import soundfile as sf
+
+# Ранний парсинг --device до импорта torch (аналогично benchmark_processing.py)
+def _early_device() -> str:
+    for i, arg in enumerate(sys.argv):
+        if arg == "--device" and i + 1 < len(sys.argv):
+            return sys.argv[i + 1].lower()
+    return "auto"
+
+if _early_device() == "cpu":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 sys.path.insert(0, ".")
 
@@ -325,7 +336,19 @@ def main():
         "--output", type=Path, default=None,
         help="Папка для сохранения enhanced файлов (default: рядом с --examples или --scp)"
     )
+    parser.add_argument(
+        "--device", type=str, default="auto", choices=["auto", "cpu", "cuda"],
+        help="Устройство для ML-моделей: auto (default), cpu, cuda"
+    )
     args = parser.parse_args()
+
+    import torch
+    if args.device == "cuda" and not torch.cuda.is_available():
+        print("[!] CUDA недоступна, используется CPU.")
+    device_label = "cpu"
+    if torch.cuda.is_available():
+        device_label = f"cuda ({torch.cuda.get_device_name(0)})"
+    print(f"Устройство: {device_label}")
 
     if args.scp is not None:
         if not args.scp.exists():
