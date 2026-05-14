@@ -1,23 +1,23 @@
-numpy>=1.21.0
-librosa>=0.10.0
-tqdm>=4.65.0
-psutil>=5.9.0
-soundfile>=0.12.0
+numpy==1.26.4
+librosa==0.11.0
+tqdm==4.67.3
+psutil==7.2.2
+soundfile==0.13.1
 PySide6==6.10.0
-grpcio>=1.50.0
-grpcio-tools>=1.50.0
-protobuf>=4.21.0
+grpcio==1.80.0
+grpcio-tools==1.80.0
+protobuf==6.33.6
 
-torch>=2.0.0
-scipy>=1.10.0
-pyloudnorm>=0.1.1
-noisereduce>=3.0.0
-speechbrain>=0.5.15
-einops>=0.7.0
-rotary-embedding-torch>=0.3.0
-packaging>=23.0
+torch==2.11.0
+scipy==1.15.3
+pyloudnorm==0.2.0
+noisereduce==3.0.3
+speechbrain==1.1.0
+einops==0.8.2
+rotary-embedding-torch==0.8.9
+packaging==23.2
 
-deepfilternet>=0.5.6
+deepfilternet==0.5.6
 
-pesq>=0.0.4
-pystoi>=0.4.1
+pesq==0.0.4
+pystoi==0.4.1

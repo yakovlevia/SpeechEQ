@@ -10,6 +10,8 @@ echo.
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
+set "REQUIRED_VER=3.10.12"
+
 :: =========================
 :: LICENSE CHECK
 :: =========================
@@ -103,44 +105,40 @@ if %errorlevel% neq 0 (
 echo.
 
 :: =========================
-:: PYTHON 3.10 CHECK
+:: PYTHON 3.10.12 CHECK
 :: =========================
 
-echo Checking Python 3.10+...
+echo Checking Python %REQUIRED_VER%...
 
 set "PYTHON_CMD="
 
-:: Ищем подходящую версию Python (3.10+)
+:: Ищем Python с точной версией 3.10.12
 for /f "tokens=*" %%p in ('where python 2^>nul') do (
     for /f "tokens=2" %%v in ('"%%p" --version 2^>^&1') do (
-        for /f "tokens=1,2 delims=." %%a in ("%%v") do (
-            if %%a GEQ 3 (
-                if %%b GEQ 10 (
-                    if not defined PYTHON_CMD set "PYTHON_CMD=%%p"
-                )
-            )
+        if "%%v"=="%REQUIRED_VER%" (
+            if not defined PYTHON_CMD set "PYTHON_CMD=%%p"
         )
     )
 )
 
-:: Также проверим py launcher (py -3.10, py -3.11, py -3.12)
+:: Также проверим py launcher
 if not defined PYTHON_CMD (
-    for %%v in (3.12 3.11 3.10) do (
-        if not defined PYTHON_CMD (
-            py -%%v --version >nul 2>&1
-            if !errorlevel! equ 0 set "PYTHON_CMD=py -%%v"
+    py -3.10 --version >nul 2>&1
+    if !errorlevel! equ 0 (
+        for /f "tokens=2" %%v in ('py -3.10 --version 2^>^&1') do (
+            if "%%v"=="%REQUIRED_VER%" set "PYTHON_CMD=py -3.10"
         )
     )
 )
 
 if not defined PYTHON_CMD (
-    echo Python 3.10+ not found. Installing Python 3.10 via winget...
+    echo Python %REQUIRED_VER% not found. Installing via winget...
     echo.
 
     where winget >nul 2>&1
     if %errorlevel% neq 0 (
         echo [X] Winget not available.
-        echo     Download Python 3.10 manually: https://www.python.org/downloads/release/python-31011/
+        echo     Download Python %REQUIRED_VER% manually: https://www.python.org/downloads/release/python-31012/
         pause
         exit /b 1
     )
@@ -148,7 +146,7 @@ if not defined PYTHON_CMD (
     winget install --id Python.Python.3.10 -e --accept-package-agreements --accept-source-agreements
 
     if %errorlevel% neq 0 (
-        echo [X] Python 3.10 installation failed.
+        echo [X] Python %REQUIRED_VER% installation failed.
         pause
         exit /b 1
     )
@@ -158,7 +156,6 @@ if not defined PYTHON_CMD (
     set "PATH=%PY310_PATH%;%PY310_PATH%\Scripts;%PATH%"
 
     set "PYTHON_CMD=python"
-    echo [+] Python 3.10 installed.
 )
 
 :: Показываем версию
@@ -167,19 +164,11 @@ for /f "tokens=2" %%v in ('"%PYTHON_CMD%" --version 2^>^&1') do (
 )
 echo.
 
-:: Проверяем, что версия точно >= 3.10
+:: Проверяем точную версию
 for /f "tokens=2" %%i in ('"%PYTHON_CMD%" --version 2^>^&1') do set PY_VER=%%i
-for /f "tokens=1,2 delims=." %%a in ("%PY_VER%") do (
-    set PY_MAJOR=%%a
-    set PY_MINOR=%%b
-)
-if %PY_MAJOR% LSS 3 (
-    echo [X] Python 3.10+ required, found %PY_VER%.
-    pause
-    exit /b 1
-)
-if %PY_MAJOR% EQU 3 if %PY_MINOR% LSS 10 (
-    echo [X] Python 3.10+ required, found %PY_VER%.
+if not "%PY_VER%"=="%REQUIRED_VER%" (
+    echo [X] Python %REQUIRED_VER% required, found %PY_VER%.
+    echo     Download: https://www.python.org/downloads/release/python-31012/
     pause
     exit /b 1
 )

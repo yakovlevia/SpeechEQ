@@ -13,6 +13,11 @@ echo ""
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
+REQUIRED_PYTHON="3.10.12"
+REQUIRED_MAJOR=3
+REQUIRED_MINOR=10
+REQUIRED_PATCH=12
+
 # ─── Определение ОС ──────────────────────────────────────────────────────────
 
 detect_os() {
@@ -29,17 +34,14 @@ OS=$(detect_os)
 echo "Платформа: $OS"
 echo ""
 
-# ─── Поиск Python 3.10+ ──────────────────────────────────────────────────────
+# ─── Поиск Python 3.10.12 ────────────────────────────────────────────────────
 
 find_python() {
-    for cmd in python3.10 python3.11 python3.12 python3; do
+    for cmd in python3.10 python3; do
         if command -v "$cmd" &>/dev/null; then
             local ver
-            ver=$("$cmd" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null)
-            local major minor
-            major=$(echo "$ver" | cut -d. -f1)
-            minor=$(echo "$ver" | cut -d. -f2)
-            if [ "$major" -ge 3 ] && [ "$minor" -ge 10 ]; then
+            ver=$("$cmd" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')" 2>/dev/null)
+            if [ "$ver" = "$REQUIRED_PYTHON" ]; then
                 echo "$cmd"
                 return 0
             fi
@@ -50,10 +52,10 @@ find_python() {
 
 PYTHON=$(find_python || true)
 
-# ─── Установка Python 3.10, если не найден ───────────────────────────────────
+# ─── Установка Python 3.10.12, если не найден ────────────────────────────────
 
 if [ -z "$PYTHON" ]; then
-    echo "Python 3.10+ не найден. Устанавливаю..."
+    echo "Python $REQUIRED_PYTHON не найден. Устанавливаю..."
     echo ""
 
     if [ "$OS" = "macos" ]; then
@@ -66,11 +68,9 @@ if [ -z "$PYTHON" ]; then
 
     elif [ "$OS" = "debian" ]; then
         sudo apt-get update -qq
-        # Пробуем установить из основного репозитория
         if apt-cache show python3.10 &>/dev/null 2>&1; then
             sudo apt-get install -y -qq python3.10 python3.10-venv python3.10-dev
         else
-            # Добавляем deadsnakes PPA для Ubuntu
             sudo apt-get install -y -qq software-properties-common
             sudo add-apt-repository -y ppa:deadsnakes/ppa
             sudo apt-get update -qq
@@ -79,14 +79,15 @@ if [ -z "$PYTHON" ]; then
         PYTHON=python3.10
 
     else
-        echo "Неизвестная платформа. Установите Python 3.10+ вручную: https://www.python.org/downloads/"
+        echo "Неизвестная платформа. Установите Python $REQUIRED_PYTHON вручную: https://www.python.org/downloads/release/python-31012/"
         exit 1
     fi
 
     # Перепроверка после установки
     PYTHON=$(find_python || true)
     if [ -z "$PYTHON" ]; then
-        echo "Не удалось найти Python 3.10+ после установки."
+        echo "Не удалось найти Python $REQUIRED_PYTHON после установки."
+        echo "Пожалуйста, установите Python $REQUIRED_PYTHON вручную: https://www.python.org/downloads/release/python-31012/"
         exit 1
     fi
 fi
