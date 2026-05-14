@@ -71,7 +71,7 @@ python benchmark_processing.py --duration 30   # 30-секундный клип
 python benchmark_processing.py --skip-ml       # только DSP
 ```
 
-**Результаты (CPU, без CUDA, аудио 30 с):**
+**Производительность (на отрезках аудио 30 с):**
 
 Intel Core Ultra 7 165H × 22:
 
