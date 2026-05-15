@@ -52,7 +52,14 @@ class LoudnessNormalizationDSP(AudioProcessingMethod):
         """
         if len(audio) == 0:
             return audio
-        
+
+        # pyloudnorm требует минимум block_size (0.4 с) аудио
+        if self._meter is None:
+            self._meter = pyln.Meter(sample_rate)
+        min_samples = int(self._meter.block_size * sample_rate)
+        if len(audio) < min_samples:
+            return audio
+
         target_lufs = np.clip(settings.normalization_target, -30.0, -10.0)
         
         # === 1. ИЗМЕРЕНИЕ ТЕКУЩЕЙ ГРОМКОСТИ ===

@@ -556,6 +556,7 @@ class VideoProcessor:
                 logger.info(f"Удалено временное видео: {video_output_path.name}")
             except Exception as e:
                 logger.warning(f"Не удалось удалить {video_output_path}: {e}")
+
         try:
             audio_dir_path = Path(task.output_path).parent / ".audio" / task.task_id
             if audio_dir_path.exists():
@@ -640,8 +641,9 @@ class VideoProcessor:
 
             overlap_start = start
             overlap_end = min(start + overlap_samples, total_samples)
-
-            actual_overlap = overlap_end - overlap_start
+            # Clamp to available segment data (short last segments)
+            actual_overlap = min(overlap_end - overlap_start, len(seg_data))
+            overlap_end = overlap_start + actual_overlap
 
             if actual_overlap > 0:
                 result_audio[overlap_start:overlap_end] = (
@@ -697,7 +699,9 @@ class VideoProcessor:
         cmd = [
             self.ffmpeg_path, "-i", video_without_audio, "-i", str(assembled_audio_path),
             "-c:v", "copy", "-c:a", "aac",
-            "-map", "0:v:0", "-map", "1:a:0", "-y", str(output_path)
+            "-map", "0:v:0", "-map", "1:a:0", "-map", "0:s?",
+            "-c:s", "copy",
+            "-y", str(output_path)
         ]
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -824,7 +828,7 @@ class VideoProcessor:
             input_path: Путь к исходному видео.
             output_path: Путь для сохранения видео без аудио.
         """
-        cmd = [self.ffmpeg_path, "-i", input_path, "-an", "-c:v", "copy", "-y", str(output_path)]
+        cmd = [self.ffmpeg_path, "-i", input_path, "-an", "-c:v", "copy", "-c:s", "copy", "-y", str(output_path)]
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )

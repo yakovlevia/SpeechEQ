@@ -4,13 +4,13 @@
 Сравниваются три чекпоинта:
   1. production  — src/processing/ml/models/metricgan_plus/enhance_model.ckpt
                    (ключи blstm.rnn.* / linear1.* / linear2.*)
-  2. test/best_model.pth   (ключи lstm.* / fc1.* / fc2.*, обёрнут в ckpt['generator'])
-  3. test/best_model2.pth  (то же)
+  2+. все *.pth из --test-dir (ключи lstm.* / fc1.* / fc2.*, обёрнут в ckpt['generator'])
 
 Метрики: PESQ (↑), STOI (↑), SI-SDR в дБ (↑).
 
 Запуск:
   python compare_metricgan_weights.py --scp examples/pairs.scp
+  python compare_metricgan_weights.py --scp examples/pairs.scp --test-dir /other/path
   python compare_metricgan_weights.py --scp examples/pairs.scp --device cpu
 """
 
@@ -292,8 +292,11 @@ def print_table(baseline: dict, rows: list[tuple[str, dict]]):
 
 def main():
     parser = argparse.ArgumentParser(description="Сравнение весов MetricGAN+")
-    parser.add_argument("--scp", type=Path, required=True,
-                        help=".scp-файл с парами (одна строка: 'noisy clean')")
+    parser.add_argument("--scp", type=Path, default=Path("examples/pairs.scp"),
+                        help=".scp-файл с парами (default: examples/pairs.scp)")
+    parser.add_argument("--test-dir", type=Path,
+                        default=Path("src/processing/ml/models/metricgan_plus"),
+                        help="Папка с best_model.pth и best_model2.pth (default: src/processing/ml/models/metricgan_plus/)")
     parser.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"],
                         help="Устройство (default: auto)")
     args = parser.parse_args()
@@ -333,25 +336,22 @@ def main():
     except Exception as e:
         print(f"  [!] production: {e}")
 
-    # test/*.pth
-    for fname in ["best_model.pth", "best_model2.pth"]:
-        path = Path("test") / fname
-        if not path.exists():
-            print(f"  [!] не найден: {path}")
-            continue
+    # все *.pth из test-dir
+    pth_files = sorted(args.test_dir.glob("*.pth"))
+    if not pth_files:
+        print(f"  [!] нет .pth файлов в {args.test_dir}")
+    for path in pth_files:
         try:
-            print(f"Загрузка: {fname}...")
             ckpt = torch.load(path, map_location="cpu", weights_only=False)
-            stats = ckpt.get("stats", {})
-            epoch = int(ckpt.get("epoch", -1)) if ckpt.get("epoch") is not None else -1
-            label = f"{fname} (ep{epoch})"
-            if stats:
-                pesq_val = stats.get('pesq', float('nan'))
-                label += f" PESQ_train={pesq_val:.3f}"
+            if "generator" not in ckpt:
+                print(f"  [!] {path.name}: нет ключа 'generator', пропуск")
+                continue
+            label = path.name
+            print(f"Загрузка: {path.name}...")
             m = load_test_ckpt(path, device)
             candidates.append((label, m))
         except Exception as e:
-            print(f"  [!] {fname}: {e}")
+            print(f"  [!] {path.name}: {e}")
 
     if not candidates:
         print("Нет ни одной загруженной модели.")

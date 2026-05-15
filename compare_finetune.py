@@ -3,12 +3,12 @@
 
 Запуск:
   python compare_finetune.py --network mossformer \
-      --scp pairs.scp \
+      --scp examples/pairs.scp \
       --pretrain src/processing/ml/models/MossFormerGAN_SE_16K.pt \
       --finetune  /path/to/finetuned.pt
 
   python compare_finetune.py --network frcrn \
-      --scp pairs.scp \
+      --scp examples/pairs.scp \
       --pretrain src/processing/ml/models/FRCRN_SE_16K.pt \
       --finetune  /path/to/finetuned.pt
 
@@ -247,8 +247,8 @@ def main():
         help="Архитектура модели: mossformer | frcrn"
     )
     parser.add_argument(
-        "--scp", required=True, type=Path,
-        help="Путь к .scp-файлу с парами noisy/clean"
+        "--scp", type=Path, default=Path("examples/pairs.scp"),
+        help="Путь к .scp-файлу с парами noisy/clean (default: examples/pairs.scp)"
     )
     parser.add_argument(
         "--pretrain", required=True, type=Path,

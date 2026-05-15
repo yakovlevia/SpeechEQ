@@ -27,31 +27,20 @@ class _LearnableSigmoid(nn.Module):
         return 1.2 * torch.sigmoid(self.slope * x)
 
 
-class _BLSTM(nn.Module):
-    """Matches checkpoint key prefix blstm.rnn.*"""
-    def __init__(self):
-        super().__init__()
-        self.rnn = nn.LSTM(_N_FREQ, 200, num_layers=2, bidirectional=True, batch_first=True)
-
-    def forward(self, x):
-        out, _ = self.rnn(x)
-        return out
-
-
 class _Generator(nn.Module):
-    """Architecture matching speechbrain EnhancementGenerator checkpoint keys."""
+    """Architecture matching best_model2.pth keys: lstm.* / fc1.* / fc2.*"""
     def __init__(self):
         super().__init__()
-        self.blstm = _BLSTM()
-        self.linear1 = nn.Linear(400, 300)
-        self.linear2 = nn.Linear(300, _N_FREQ)
+        self.lstm = nn.LSTM(_N_FREQ, 200, num_layers=2, bidirectional=True, batch_first=True)
+        self.fc1 = nn.Linear(400, 300)
+        self.fc2 = nn.Linear(300, _N_FREQ)
         self.Learnable_sigmoid = _LearnableSigmoid()
         self.lrelu = nn.LeakyReLU(0.3)
 
     def forward(self, x):
-        out = self.blstm(x)
-        out = self.lrelu(self.linear1(out))
-        out = self.linear2(out)
+        out, _ = self.lstm(x)
+        out = self.lrelu(self.fc1(out))
+        out = self.fc2(out)
         return self.Learnable_sigmoid(out)
 
 
@@ -96,7 +85,7 @@ class MetricGANPlusMethod(AudioProcessingMethod):
         self._infer_lock = Lock()
         self.model: _Generator | None = None
         self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        self.ckpt_path = Path(__file__).resolve().parent / "models" / "metricgan_plus" / "enhance_model.ckpt"
+        self.ckpt_path = Path(__file__).resolve().parent / "models" / "metricgan_plus" / "best_model2.pth"
 
         if preload:
             self._load_model()
@@ -109,7 +98,8 @@ class MetricGANPlusMethod(AudioProcessingMethod):
                 raise FileNotFoundError(f"Веса MetricGAN+ не найдены: {self.ckpt_path}")
 
             g = _Generator()
-            state = torch.load(self.ckpt_path, map_location="cpu", weights_only=True)
+            ckpt = torch.load(self.ckpt_path, map_location="cpu", weights_only=False)
+            state = ckpt["generator"]
             g.load_state_dict(state, strict=True)
             g.eval()
             self.model = g.to(self.device)

@@ -132,7 +132,33 @@ DSP-методы работают в реальном времени на люб
 ```bash
 python evaluate_models.py                            # папка examples/ по умолчанию
 python evaluate_models.py --scp examples/pairs.scp  # по .scp-файлу
-python evaluate_models.py --models frcrn mossformer  # выбор моделей
+python evaluate_models.py --models frcrn mossformer        # выбор моделей
+```
+
+### create_demo_videos.py
+
+Создаёт демонстрационные видео из пар clean/noisy из `examples/` и прогоняет их через два пайплайна проекта.
+
+Генерирует 3 видео в форматах MP4, MKV, MOV: каждое склеено из 4 случайных пар `(noisy + clean) × 4` с визуализацией сигнала и цветовой разметкой (красный — зашумлённый, зелёный — чистый).
+
+Затем каждое видео обрабатывается двумя пайплайнами:
+- **frcrn** — FRCRN + нормализация громкости
+- **full** — шумоподавление (лёгкое) + речевой EQ + FRCRN + нормализация
+
+Результаты сохраняются в `video_examples/`:
+
+```
+video_examples/
+├── demo.mp4 / .mkv / .mov          — исходные демо-видео
+└── output/
+    ├── demo_frcrn.mp4 / .mkv / .mov  — FRCRN + нормализация
+    └── demo_full.mp4  / .mkv / .mov  — DSP + FRCRN + нормализация
+```
+
+```bash
+python create_demo_videos.py                      # создать видео и обработать
+python create_demo_videos.py --no-process         # только создать видео
+python create_demo_videos.py --ffmpeg /path/to/ffmpeg
 ```
 
 ### compare_finetune.py
@@ -160,12 +186,12 @@ python compare_finetune.py \
 Noisy (baseline)     1.25      —      —    0.882      —      —       5.83       —       —
 FRCRN_SE_16K         1.25   3.39  +2.13    0.882  0.982 +0.100       5.83   19.01  +13.18
 MossFormerGAN        1.25   3.64  +2.39    0.882  0.983 +0.101       5.83   21.41  +15.58
-MetricGAN+           1.25   1.52  +0.27    0.882  0.853 -0.029       5.83    2.34   -3.49
+MetricGAN+           1.25   2.19  +0.93    0.882  0.921 +0.039       5.83    8.22   +2.39
 DeepFilterNet        1.25   2.16  +0.91    0.882  0.914 +0.032       5.83   14.71   +8.88
 ─────────────────────────────────────────────────────────────────────────────────────────
 ```
 
-MossFormerGAN и FRCRN_SE_16K показывют хорошие результаты по всем трём метрикам. MetricGAN+ плохо справляется с сильно зашумлёнными данными и в целом уступает остальным моделям — в интерфейсе он помечен как экспериментальный.
+MossFormerGAN и FRCRN_SE_16K показывают лучшие результаты по всем трём метрикам. На лёгких моделях (MetricGAN+, DeepFilterNet) при прослушивании заметны артефакты и искажения речи — это подтверждается и метриками: SI-SDR в 1.5–2 раза ниже, чем у тяжёлых моделей, PESQ не превышает 2.2 против 3.4–3.6 у FRCRN и MossFormerGAN. Дообученный MetricGAN+ заметно улучшился (PESQ +0.93, SI-SDR +2.39 дБ) и теперь сопоставим с DeepFilterNet, но оба метода сильно уступают более тяжёлым моделям в качестве очистки.
 
 ### Эффект дообучения FRCRN на русских данных
 
@@ -196,6 +222,7 @@ SpeechEQ/
 │   ├── clean/           # эталонные WAV-файлы
 │   ├── noisy/           # зашумлённые WAV-файлы
 │   └── pairs.scp        # список пар для evaluate/compare
+├── examples/video/      # тестовые видеофайлы
 ├── evaluate_models.py   # оценка качества моделей
 ├── compare_finetune.py  # сравнение pretrain vs finetune
 ├── benchmark_processing.py  # замер скорости
