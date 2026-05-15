@@ -149,10 +149,10 @@ python evaluate_models.py --models frcrn mossformer        # выбор моде
 
 ```
 video_examples/
-├── demo.mp4 / .mkv / .mov          — исходные демо-видео
+├── demo.mp4 / .mkv / .mov             — исходные демо-видео
 └── output/
-    ├── demo_frcrn.mp4 / .mkv / .mov  — FRCRN + нормализация
-    └── demo_full.mp4  / .mkv / .mov  — DSP + FRCRN + нормализация
+    ├── demo_frcrn.mp4 / .mkv / .mov   — FRCRN + нормализация
+    └── demo_full.mp4  / .mkv / .mov   — DSP + FRCRN + нормализация
 ```
 
 ```bash
@@ -222,7 +222,7 @@ SpeechEQ/
 │   ├── clean/           # эталонные WAV-файлы
 │   ├── noisy/           # зашумлённые WAV-файлы
 │   └── pairs.scp        # список пар для evaluate/compare
-├── examples/video/      # тестовые видеофайлы
+├── video_examples/      # демо-видео и результаты обработки (create_demo_videos.py)
 ├── evaluate_models.py   # оценка качества моделей
 ├── compare_finetune.py  # сравнение pretrain vs finetune
 ├── benchmark_processing.py  # замер скорости
